@@ -7,3 +7,5 @@
 Todo.md
 data/initial_import/raw/ICTRPFullExport-672212-23-11-20.zip
 data/initial_import/raw/ICTRPFullExport-672212-23-11-20.csv
+working.Rmd
+data/initial_import/intermediate/ictrp.R
