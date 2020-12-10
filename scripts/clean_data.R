@@ -2,7 +2,13 @@
 
 # This script imports the raw data, removes strange formatting, formats dates,
 # and adds a source register column to the main ICTRP data. Only columns that we
-# later use are focussed on
+# later use are focussed on.
+
+# It produces four files in the output folder: ictrp.csv and covid.csv, with .Rdata
+# files with the same information as well because of the large size
+
+# note that running this script from beginning to end with the full ictrp
+# dataset will take some time and is not recommended
 
 # Load -----
 library(tidyverse)
@@ -36,6 +42,7 @@ name_ct_ids <- "supplementary/registry_prefixes_date_formats.csv"
 raw_folder <- "raw/"
 intermediate_folder <- "intermediate/"
 output_folder <- "clean/"
+N_rows <- 350000 # number of rows to stop after in first of two imports
 
 # Import data -----
 
@@ -58,7 +65,7 @@ if(file.exists(paste0(file_path, intermediate_folder, "ictrp.RData"))){
   load(paste0(file_path, intermediate_folder, "ictrp.RData"))
 } else {
   ictrp1 <- read_csv(paste0(file_path, raw_folder, name_ictrp),
-                     n_max = 3500,
+                     n_max = N_rows,
                      col_names = F)
   ictrp1 <- ictrp1 %>%
     mutate_if(is.character, removeQuotes)
@@ -66,7 +73,7 @@ if(file.exists(paste0(file_path, intermediate_folder, "ictrp.RData"))){
   rm(ictrp1)
   
   ictrp2 <- read_csv(paste0(file_path, raw_folder, name_ictrp),
-                     skip = 3500,
+                     skip = N_rows,
                      col_names = F)
   ictrp2 <- ictrp2 %>%
     mutate_if(is.character, removeQuotes)
@@ -143,6 +150,7 @@ if (length(unlist(ids))!= nrow(ictrp)) {
   warning("Prefixes for source registry were not unique to each entry")
 }
 rm(ids)
+
 # Make same registry acronyms in covid data 
 reg <- covid$`Source Register`
 reg[reg == "ClinicalTrials.gov"] <- "CT.gov"
@@ -162,13 +170,12 @@ if (!setequal(unique(ictrp$Source_registry), unique(covid$Source_registry))){
   warning("Source registries aren't the same across the two datasets: they should be with the full ICTRP dataset used")
 }
 
-# ICTRP Dates ----
+# ICTRP dates ----
 
 # add a column to the dataset with date inferred. This is by default false. For
 # some enrollment dates, only the month and year are given, so we have to assume
 # the day. This column allows us to record this
 ictrp$Day_inferred <- F
-covid$Day_inferred <- F
 
 # ICTRP registration date
 # split to do date formatting by registry
@@ -230,6 +237,8 @@ ictrp <- as_tibble(ictrp) %>%
 # Largely the same as above for ICTRP, though the covid export has one nicely
 # formatted date column which we can check our approach against
 
+covid$Day_inferred <- F
+
 # split to do date formatting by registry
 s <- split(covid, f = covid$Source_registry)
 covid <- lapply(s, convertDates)
@@ -287,20 +296,18 @@ covid <- as_tibble(covid) %>%
 # convert the nicely formatted date column and check against my conversions
 covid <- covid %>% 
   mutate(Date_registration3_format = as.Date(`Date registration3`, format = "%Y%m%d"))
-
 if (!setequal(covid$Date_registration_format, covid$Date_registration3_format))
   warning("Date registration differs between my conversion and ICTRP Date registration3 column")
 
 # check that registration date is consistent across datasets for the same trials
 x <- inner_join(covid, ictrp, by = "TrialID") %>% 
-  select(Date_registration_format.x, Date_registration_format.y,)
-
+  select(Date_registration_format.x, Date_registration_format.y, everything())
 if(!identical(x$Date_registration_format.x, x$Date_registration_format.y))
   warning("Registration dates don't match for the same trials across the two data sources")
+# one trial has a one month difference across them: LBCTR2020043495.
 rm(x)
 
 # Reorder columns 
-
 ictrp <- ictrp %>% 
   select(Source_registry, TrialID, public_title, Scientific_title, url, 
          Date_registration_format, Date_enrollment_format, Day_inferred, 
@@ -315,7 +322,7 @@ covid <- covid %>%
          `Primary sponsor`, Countries, Intervention, Condition, `Bridging flag truefalse`, 
          `Retrospective flag`, everything())
 
-# save files
+# save files -----
 save(ictrp, file = paste0(file_path, output_folder, "ictrp.R"))
 save(covid, file = paste0(file_path, output_folder, "covid.R"))
 write_csv(ictrp, file = paste0(file_path, output_folder, "ictrp.csv"))
