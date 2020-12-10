@@ -8,7 +8,10 @@
 # files with the same information as well because of the large size
 
 # note that running this script from beginning to end with the full ictrp
-# dataset will take some time and is not recommended
+# dataset will take some time and is not recommended unless needed
+
+# A sample of 1% of the data can be used to check the code if name_ictrp is
+# changed to "SAMPLE0.01ICTRPFullExport-672212-23-11-20.csv"
 
 # Load -----
 library(tidyverse)
@@ -33,7 +36,7 @@ convertDates <- function(df){
 # Inputs -----
 # location of files and output
 file_path <- "data/initial_import/"
-# name_ictrp <- "SAMPLEICTRPExport-672212-23-11-20.csv"
+# name_ictrp <- "SAMPLE0.01ICTRPFullExport-672212-23-11-20.csv"
 name_ictrp <- "ICTRPFullExport-672212-23-11-20.csv"
 name_ictrp_fields <- "ICTRP_export_datafields.txt"
 name_covid <- "COVID19-web.csv"
