@@ -1,7 +1,8 @@
 # Clean data
 
-# This script imports the raw data, removes strange formatting, formats
-# dates, and adds a source register column to the main ICTRP data
+# This script imports the raw data, removes strange formatting, formats dates,
+# and adds a source register column to the main ICTRP data. Only columns that we
+# later use are focussed on
 
 # Load -----
 library(tidyverse)
@@ -26,9 +27,8 @@ convertDates <- function(df){
 # Inputs -----
 # location of files and output
 file_path <- "data/initial_import/"
-
-# NOTE USING JUST A SAMPLE CURRENTLY FOR EASE
-name_ictrp <- "SAMPLEICTRPExport-672212-23-11-20.csv"
+# name_ictrp <- "SAMPLEICTRPExport-672212-23-11-20.csv"
+name_ictrp <- "ICTRPFullExport-672212-23-11-20.csv"
 name_ictrp_fields <- "ICTRP_export_datafields.txt"
 name_covid <- "COVID19-web.csv"
 # Clinical trial ID prefixes and date formatting
@@ -291,63 +291,35 @@ covid <- covid %>%
 if (!setequal(covid$Date_registration_format, covid$Date_registration3_format))
   warning("Date registration differs between my conversion and ICTRP Date registration3 column")
 
+# check that registration date is consistent across datasets for the same trials
+x <- inner_join(covid, ictrp, by = "TrialID") %>% 
+  select(Date_registration_format.x, Date_registration_format.y,)
+
+if(!identical(x$Date_registration_format.x, x$Date_registration_format.y))
+  warning("Registration dates don't match for the same trials across the two data sources")
+rm(x)
+
+# Reorder columns 
+
+ictrp <- ictrp %>% 
+  select(Source_registry, TrialID, public_title, Scientific_title, url, 
+         Date_registration_format, Date_enrollment_format, Day_inferred, 
+         study_type, study_design, phase, Target_size, 
+         Primary_sponsor, Countries, Interventions, Conditions, Bridging_flag, 
+         Retrospective_flag, everything())
+
+covid <- covid %>% 
+  select(Source_registry, TrialID, `Public title`, `Scientific title`, `web address`,
+         Date_registration_format, Date_enrollment_format, Day_inferred, 
+         `Study type`, `Study design`, Phase, `Target size`, 
+         `Primary sponsor`, Countries, Intervention, Condition, `Bridging flag truefalse`, 
+         `Retrospective flag`, everything())
+
 # save files
 save(ictrp, file = paste0(file_path, output_folder, "ictrp.R"))
 save(covid, file = paste0(file_path, output_folder, "covid.R"))
-
-# working ----- 
-
-table(ictrp$study_type)
-colnames(ictrp)
-
-jprn <- filter(ictrp, Source_registry == "JPRN")
-jprn %>%
-  group_by(Trial_prefix) %>%
-  sample_n(5, replace = T) %>%
-  View()
-
-covid[is.na(covid$Date_enrollment_format), ]
-View(jprn[is.na(jprn$Date_enrollment_format), ])
-
-
-# other notes-----
-ictrp %>%
-  group_by(Source_registry) %>%
-  sample_n(5, replace = T) %>%
-  View()
-df <- select(ictrp, -Date_registration_format)
-
-ictrp <- ictrp %>% 
-  select(Source_registry, Date_registration, 
-         Date_registration_format, Date_enrollment,
-         Date_enrollment_format, TrialID, 
-         everything())
-
-covid %>%
-  group_by(Source_registry) %>%
-  sample_n(5, replace = T) %>%
-  select(Source_registry, 
-         Date_registration, Date_registration_format, `Date registration3`,
-         Date_enrollment, Date_enrollment_format ) %>%
-  View()
-
-unique(covid$Source_registry)
-
-
-
-# covid %>% 
-#   group_by(`Source Register`) %>% 
-#   sample_n(5, replace = T) %>% 
-#   select(`Date registration`, `Date registration3`,
-#          `Date enrollment`, `Source Register`) %>% 
-#   View()
-# 
-# ictrp %>% 
-#   group_by(`Source Register`) %>% 
-#   sample_n(5, replace = T) %>% 
-#   select(`Date registration`, `Date registration3`,
-#          `Date enrollment`, `Source Register`) %>% 
-#   View()
+write_csv(ictrp, file = paste0(file_path, output_folder, "ictrp.csv"))
+write_csv(covid, file = paste0(file_path, output_folder, "covid.csv"))
 
 
 
