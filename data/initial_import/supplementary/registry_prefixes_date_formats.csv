@@ -1,0 +1,21 @@
+﻿Registry,Prefix,Abbreviation,Date Example,Format
+Australia New Zealand Clinical Trial Registry,ACTRN,ANZCTR,"""17/05/2016""",%d/%m/%Y
+Chinese Clinical Trial Registry,chictr,ChiCTR,"""2016-10-20""",%Y-%m-%d
+Chinese Clinical Trial Registry,ChiCTR,ChiCTR,"""2016-10-20""",%Y-%m-%d
+Clinical Trial Registry India,CTRI,CTRI,"""21-10-2013""",%d-%m-%Y
+German Clinical Trial Register,DRKS,DRKS,"""15/03/2017""",%d/%m/%Y
+EUCTR,EUCTR,EUCTR,"""15/01/2014""",%d/%m/%Y
+Iranian Registry of Clinical Trials,IRCT,IRCT,"""2012-01-16""",%Y-%m-%d
+ISRCTN,ISRCTN,ISRCTN,"""29/07/2015""",%d/%m/%Y
+Japanese Registries,JPRN,JPRN,"""23/03/2017""",%d/%m/%Y
+Korean Clinical Trial Register,KCT,KCT,"""2014-01-15""",%Y-%m-%d
+Lebanese Clinical Trial Register,LBCTR,LBCTR,"""15/04/2020""",%d/%m/%Y
+ClinicalTrials.gov,NCT,CT.gov,"""14/12/2016""",%d/%m/%Y
+Netherlands Trial Register,NL,NTR,"""13/10/2011""",%d/%m/%Y
+Netherlands Trial Register,NTR,NTR,"""13/10/2011""",%d/%m/%Y
+Pan-African Clinical Trial Register,PACTR,PACTR,"""24/08/2018""",%d/%m/%Y
+Peruvian Clinical Trial Registry,PER,PER,"""27/02/2004""",%d/%m/%Y
+Brazilian Clinical Trial Register,RBR,RBR,"""30/07/2015""",%d/%m/%Y
+Cuban Clinical Trial Register,RPCEC,RPCEC,"""29/11/2017""",%d/%m/%Y
+Sri Lankan Clinical Trial Register,SLCTR,SLCTR,"""2017-07-21""",%Y-%m-%d
+Thai Clinical Trial Registry,TCTR,TCTR,"""16/07/2015""",%d/%m/%Y
