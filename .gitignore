@@ -2,11 +2,14 @@
 .Rhistory
 .RData
 .Ruserdata
-.pdf
-.html
+*.pdf
+*.html
 Todo.md
+# raw data is too large to push 
 data/initial_import/raw/ICTRPFullExport-672212-23-11-20.zip
 data/initial_import/raw/ICTRPFullExport-672212-23-11-20.csv
 data/initial_import/raw/SAMPLEICTRPExport-672212-23-11-20.csv
+data/initial_import/intermediate
+data/initial_import/clean
 working.Rmd
 data/initial_import/intermediate/ictrp.R
