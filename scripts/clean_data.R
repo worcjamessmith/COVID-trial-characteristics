@@ -17,8 +17,11 @@ convertDates <- function(df){
   df <- df %>% 
     mutate(Date_registration_format = as.Date(Date_registration, 
                                               format = paste(ct_ids[id, "Format"])))
+  df <- df %>% 
+    mutate(Date_enrollment_format = as.Date(Date_enrollment, 
+                                            format = paste(ct_ids[id, "Format"])))
   df
-}
+} 
 
 # Inputs -----
 # location of files and output
@@ -93,12 +96,22 @@ covid <- read_csv(paste0(file_path, raw_folder, name_covid),
 ct_ids <- read_csv(paste0(file_path, name_ct_ids))
 
 # Clean data -----
+# Add colnames to ictrp 
 # first 8 are metadata, last 2 are blank
 fields <- fields[9:70]
 # names appear to match apart from column 2
 colnames(ictrp)[1] <- fields[1]
 colnames(ictrp)[2] <-"Unknown"
 colnames(ictrp)[3:63] <- fields[2:62]
+
+# rename col in covid to make same as ictrp
+covid <- rename(covid, Date_registration = `Date registration`)
+# correct spelling and standardise date_enrollment
+covid <- rename(covid, Date_enrollment = `Date enrollement`)
+ictrp <- rename(ictrp, Date_enrollment = Date_enrollement)
+
+# format date col as character not number
+covid$`Date registration3` <- as.character(covid$`Date registration3`)
 
 # Registries -----
 
@@ -129,7 +142,7 @@ ids <- sapply(ct_ids$Prefix, USE.NAMES = F, function (x){
 if (length(unlist(ids))!= nrow(ictrp)) {
   warning("Prefixes for source registry were not unique to each entry")
 }
-
+rm(ids)
 # Make same registry acronyms in covid data 
 reg <- covid$`Source Register`
 reg[reg == "ClinicalTrials.gov"] <- "CT.gov"
@@ -142,19 +155,61 @@ reg[reg == "REPEC"] <- "PER"
 reg <- as_tibble(reg)
 colnames(reg) <- "Source_registry"
 covid <- bind_cols(covid, reg)
+rm(reg)
 
 # check source registries are now the same
 if (!setequal(unique(ictrp$Source_registry), unique(covid$Source_registry))){
   warning("Source registries aren't the same across the two datasets: they should be with the full ICTRP dataset used")
 }
 
-# Dates ----
+# ICTRP Dates ----
+
+# add a column to the dataset with date inferred. This is by default false. For
+# some enrollment dates, only the month and year are given, so we have to assume
+# the day. This column allows us to record this
+ictrp$Day_inferred <- F
+covid$Day_inferred <- F
 
 # ICTRP registration date
 # split to do date formatting by registry
 s <- split(ictrp, f = ictrp$Source_registry)
 ictrp <- lapply(s, convertDates)
-ictrp <- do.call("rbind", ictrp)
+# ctgov and JPRN have different formatting for enrollment and registration
+# ctgov first. it has a mix of dates and month/years. 
+ctgov <- ictrp$CT.gov
+ctgov <- ctgov %>% 
+  mutate(Date_enrollment_format = (as.Date(Date_enrollment, 
+                                           format = "%B %d, %Y"))) %>% 
+  select(Date_enrollment, Date_enrollment_format, Day_inferred, 
+         everything())
+
+# add a flag to data for those that we are about to infer day for
+ctgov <- ctgov %>% 
+  mutate(Day_inferred = if_else(!is.na(Date_enrollment_format),  
+                                true = F,
+                                false = T))
+
+# assume that the date is the first of the month to allow as.Date                      
+ctgov <- ctgov %>% 
+  mutate(Date_enrollment_format = if_else(is.na(Date_enrollment_format), 
+                                          as.Date(paste(Date_enrollment, 
+                                                        " 01", sep=""), 
+                                                  format = "%B %Y %d"),
+                                          Date_enrollment_format))
+ictrp$CT.gov <- ctgov
+rm(ctgov)
+# JPRN: some of the JPRN ones are in the format we already tried, so only now do
+# those that failed. The formats could not be misinterpreted as they are year
+# last or year first, so this approach works
+jprn <- ictrp$JPRN
+jprn <- jprn %>%
+  mutate(Date_enrollment_format = if_else(is.na(Date_enrollment_format),
+                                          as.Date(Date_enrollment,
+                                                  format = "%Y/%m/%d"),
+                                          Date_enrollment_format))
+ictrp$JPRN <- jprn
+rm(jprn)
+ictrp <- do.call(bind_rows, ictrp)
 rownames(ictrp) <- NULL
 rm(s)
 
@@ -165,70 +220,134 @@ if (sum(is.na(ictrp$Date_registration_format)) != sum(ictrp$Date_registration ==
 # reorder for ease of checking
 ictrp <- as_tibble(ictrp) %>% 
   select(Source_registry, 
-         Date_registration, Date_registration_format, Date_enrollement,
+         Date_registration, Date_registration_format, Date_enrollment,
+         Date_enrollment_format, Day_inferred,
          TrialID, 
          everything())
 
+# COVID dates -----
+
+# Largely the same as above for ICTRP, though the covid export has one nicely
+# formatted date column which we can check our approach against
+
+# split to do date formatting by registry
+s <- split(covid, f = covid$Source_registry)
+covid <- lapply(s, convertDates)
+# ctgov and JPRN have different formatting for enrollment and registration
+# ctgov first. it has a mix of dates and month/years. 
+ctgov <- covid$CT.gov
+ctgov <- ctgov %>% 
+  mutate(Date_enrollment_format = (as.Date(Date_enrollment, 
+                                           format = "%B %d, %Y"))) %>% 
+  select(Date_enrollment, Date_enrollment_format, Day_inferred, 
+         everything())
+
+# add a flag to data for those that we are about to infer day for
+ctgov <- ctgov %>% 
+  mutate(Day_inferred = if_else(!is.na(Date_enrollment_format),  
+                                true = F,
+                                false = T))
+
+# assume that the date is the first of the month to allow as.Date                      
+ctgov <- ctgov %>% 
+  mutate(Date_enrollment_format = if_else(is.na(Date_enrollment_format), 
+                                          as.Date(paste(Date_enrollment, 
+                                                        " 01", sep=""), 
+                                                  format = "%B %Y %d"),
+                                          Date_enrollment_format))
+covid$CT.gov <- ctgov
+rm(ctgov)
+# JPRN: some of the JPRN ones are in the format we already tried, so only now do
+# those that failed. The formats are not ambiguous as they are year
+# last or year first, so this approach works
+jprn <- covid$JPRN
+jprn <- jprn %>%
+  mutate(Date_enrollment_format = if_else(is.na(Date_enrollment_format),
+                                          as.Date(Date_enrollment,
+                                                  format = "%Y/%m/%d"),
+                                          Date_enrollment_format))
+covid$JPRN <- jprn
+rm(jprn)
+covid <- do.call(bind_rows, covid)
+rownames(covid) <- NULL
+rm(s)
+
+if (sum(is.na(covid$Date_registration_format)) != sum(covid$Date_registration == "")){
+  warning("Number of NAs don't match blank date cells. Review Date_registration_format NA values")
+}
+
+# reorder for ease of checking
+covid <- as_tibble(covid) %>% 
+  select(Source_registry, 
+         Date_registration, Date_registration_format, Date_enrollment,
+         Date_enrollment_format, Day_inferred,
+         TrialID, 
+         everything())
+
+# convert the nicely formatted date column and check against my conversions
+covid <- covid %>% 
+  mutate(Date_registration3_format = as.Date(`Date registration3`, format = "%Y%m%d"))
+
+if (!setequal(covid$Date_registration_format, covid$Date_registration3_format))
+  warning("Date registration differs between my conversion and ICTRP Date registration3 column")
+
+# save files
+save(ictrp, file = paste0(file_path, output_folder, "ictrp.R"))
+save(covid, file = paste0(file_path, output_folder, "covid.R"))
+
 # working ----- 
 
-# convertDates <- function(df){
-df <- ictrp
-input_col <- "Date_registration"
+table(ictrp$study_type)
+colnames(ictrp)
 
-select(df, !!input_col)
+jprn <- filter(ictrp, Source_registry == "JPRN")
+jprn %>%
+  group_by(Trial_prefix) %>%
+  sample_n(5, replace = T) %>%
+  View()
 
-  id <- match(df[[1, "Source_registry"]], ct_ids$Abbreviation)
-  ct_ids[id, 5]
-  df <- df %>% 
-    mutate(Date_registration_format = as.Date(!!Date_registration, 
-                                              format = paste(ct_ids[id, "Format"])))
-  df
-# }
+covid[is.na(covid$Date_enrollment_format), ]
+View(jprn[is.na(jprn$Date_enrollment_format), ])
 
 
+# other notes-----
 ictrp %>%
   group_by(Source_registry) %>%
   sample_n(5, replace = T) %>%
   View()
+df <- select(ictrp, -Date_registration_format)
+
+ictrp <- ictrp %>% 
+  select(Source_registry, Date_registration, 
+         Date_registration_format, Date_enrollment,
+         Date_enrollment_format, TrialID, 
+         everything())
 
 covid %>%
   group_by(Source_registry) %>%
   sample_n(5, replace = T) %>%
-  select(`Source Register`, Source_registry, 
-         `Date registration`, `Date registration3`,
-         `Date enrollement`, ) %>%
+  select(Source_registry, 
+         Date_registration, Date_registration_format, `Date registration3`,
+         Date_enrollment, Date_enrollment_format ) %>%
   View()
 
 unique(covid$Source_registry)
 
-#then decide if need to do the same for the enrollment date (do need this eventually)
 
-# Other to do 
-# should include a check that the data are the same in both datasets (e.g. start
-# date is same for same trial number)
-
-# on full data be sure to change the skip number at the beginning 
-# decide on which columns to keep
 
 # covid %>% 
 #   group_by(`Source Register`) %>% 
 #   sample_n(5, replace = T) %>% 
 #   select(`Date registration`, `Date registration3`,
-#          `Date enrollement`, `Source Register`) %>% 
+#          `Date enrollment`, `Source Register`) %>% 
 #   View()
 # 
 # ictrp %>% 
 #   group_by(`Source Register`) %>% 
 #   sample_n(5, replace = T) %>% 
 #   select(`Date registration`, `Date registration3`,
-#          `Date enrollement`, `Source Register`) %>% 
+#          `Date enrollment`, `Source Register`) %>% 
 #   View()
 
-# data cleaning ICTRP all has the work fixing the dates from before
 
-# code to make random sample in terminal:
-# perl -ne 'print if (rand() < .01)' biglist.txt > subset.txt
-# Specifically used: perl -ne 'print if (rand() < .01)' Data/Original/ICTRPFullExport-672212-23-11-20.csv > Data/Original/SAMPLEICTRPExport-672212-23-11-20.csv
-# 
-# also need to add output file names 
 
