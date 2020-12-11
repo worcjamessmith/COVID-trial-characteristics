@@ -1,5 +1,9 @@
 # Filter cleaned data prior to manual review
 
+# Removes withdrawn trials, limits to interventional trials, limits dates,
+# filters conditions, randomly orders rows and creates csvs for manual
+# eligibility screen
+
 # Load -----
 library(tidyverse)
 
