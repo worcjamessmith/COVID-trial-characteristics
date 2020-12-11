@@ -4,8 +4,8 @@
 # and adds a source register column to the main ICTRP data. Only columns that we
 # later use are focussed on.
 
-# It produces four files in the output folder: ictrp.csv and covid.csv, with .Rdata
-# files with the same information as well because of the large size
+# It produces four files in the output folder: ictrp.csv and covid.csv, with
+# .Rdata files with the same information as well because of the large size
 
 # note that running this script from beginning to end with the full ictrp
 # dataset will take some time and is not recommended unless needed
@@ -47,15 +47,15 @@ intermediate_folder <- "intermediate/"
 output_folder <- "clean/"
 N_rows <- 350000 # number of rows to stop after in first of two imports
 
-# Import data -----
-
-# Create file structure
+# Create folders -----
 if(!dir.exists(paste0(file_path, intermediate_folder))){
   dir.create(paste0(file_path, intermediate_folder))
 } 
 if(!dir.exists(paste0(file_path, output_folder))){
   dir.create(paste0(file_path, output_folder))
 } 
+
+# Import data -----
 
 # ICTRP data is strangely formatted - all except first column have extra
 # quotations. My computer can't deal with removing all the quotation marks in
