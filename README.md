@@ -26,17 +26,14 @@ The project uses [`renv`](https://rstudio.github.io/renv/articles/renv.html). Us
 # Raw Data
 ICTRP data for control samples were downloaded from ICTRP on 23rd November 2020 from the 'full data download' here: https://www.who.int/ictrp/data/en/ and were up to date on 23rd November. Checking the database on 8th December 2020 there was no further update to the data, but the data fields file was better formatted than the version I had, so that was downloaded on 8th Dec. COVID-19 trial data were downloaded on 8th December 2020 from `Download COVID-19 trials csv format [7022 rows, updated on: 4 December 2020]` link here: https://www.who.int/clinical-trials-registry-platform.
 
-There are five files in `data/initial_import/raw`:
+There will be four files in `data/initial_import/raw` if you run the `download_raw_data.R` script to get the ICTRP data. 
 
-1. `ICTRP_export_datafields.txt` - these are the datafields that corresponds to the column names 
-2. `ICTRPFullExport-672212-23-11-20.zip`- this is the raw data folder It is too large to put on github so it will be made available on OSF
-3. `ICTRPFullExport-672212-23-11-20.csv` unzipped version of file 2. Also too large for github.
-4. `SAMPLE0.01ICTRPFullExport-672212-23-11-20.csv`. A sample of 1% of `ICTRPFullExport-672212-23-11-20.csv` which can be used to check computations and can be pushed to github
-5. `COVID19-web.csv`. The COVID-19 trials including column names 
+1. `ICTRP_export_datafields.txt` - these are the datafields that corresponds to the column names in the ICTRP data (items 2 and 3).
+2. `ICTRPFullExport-672212-23-11-20.csv`. This is the raw ICTRP data file containing the whole database, which is too large to put on github so is on OSF (see Data download section). The zipped file is also on OSF (`ICTRPFullExport-672212-23-11-20.zip`), which is the format in which it was originally downloaded from ICTRP.
+3. `SAMPLE0.01ICTRPFullExport-672212-23-11-20.csv`. A sample of 1% of `ICTRPFullExport-672212-23-11-20.csv` which can be used to check code/reproducibility if you don't want to run the scripts with the full data. 
+5. `COVID19-web.csv`. The COVID-19 trials including column names.
 
-In the `data/initial_import/supplementary` folder there is 
-`registry_prefixes_date_formats.csv`
-which has the registry prefixes and date formatting. The date formatting is the formatting used for the Date_registration column in the ICTRP export. This file used in `clean_data.R`. It mostly matches the formatting in the Date_enrollment column of the ICTRP export too, except for ct.gov and JPRN. The same enrollment date formats are used in ICTRP and COVID export.
+In the `data/initial_import/supplementary` folder there is `registry_prefixes_date_formats.csv` which has the registry prefixes and date formatting. The date formatting is the formatting used for the Date_registration column in the ICTRP export. This file used in `clean_data.R`. It mostly matches the formatting in the Date_enrollment column of the ICTRP export too, except for ct.gov and JPRN. The same enrollment date formats are used in ICTRP and COVID-19 export.
 
 
 
