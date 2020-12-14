@@ -34,7 +34,3 @@ There will be four files in `data/initial_import/raw` if you run the `download_r
 5. `COVID19-web.csv`. The COVID-19 trials including column names.
 
 In the `data/initial_import/supplementary` folder there is `registry_prefixes_date_formats.csv` which has the registry prefixes and date formatting. The date formatting is the formatting used for the Date_registration column in the ICTRP export. This file used in `clean_data.R`. It mostly matches the formatting in the Date_enrollment column of the ICTRP export too, except for ct.gov and JPRN. The same enrollment date formats are used in ICTRP and COVID-19 export.
-
-
-
-
