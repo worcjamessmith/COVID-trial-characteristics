@@ -162,15 +162,19 @@ ictrp_im <- ictrp_im[rows, ]
 rows <- sample(nrow(covid)) 
 covid <- covid[rows, ]
 
+# add include column for manual extraction and reorder cols for ease of review
 ictrp_main <- ictrp_main %>% 
-  select(Scientific_title, Interventions, url, Public_title, everything()) 
+  mutate(Include = NA) %>% 
+  select(Include, Scientific_title, Interventions, url, Public_title, everything()) 
 # limit size as very unlikely to need more to reach sample size
 ictrp_main <- ictrp_main[1:3500, ]
 
 ictrp_im <- ictrp_im %>% 
+  mutate(Include = NA) %>% 
   select(Scientific_title, Interventions, url, Public_title, everything()) 
 
 covid <- covid %>% 
+  mutate(Include = NA) %>% 
   select(Scientific_title, Interventions, url, Public_title, everything())
 
 write_csv(ictrp_main, paste0(file_path, output_folder, output_subfolder, "ictrp_main.csv"))
