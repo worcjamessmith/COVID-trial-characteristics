@@ -171,11 +171,11 @@ ictrp_main <- ictrp_main[1:3500, ]
 
 ictrp_im <- ictrp_im %>% 
   mutate(Include = NA) %>% 
-  select(Scientific_title, Interventions, url, Public_title, everything()) 
+  select(Include, Scientific_title, Interventions, url, Public_title, everything()) 
 
 covid <- covid %>% 
   mutate(Include = NA) %>% 
-  select(Scientific_title, Interventions, url, Public_title, everything())
+  select(Include, Scientific_title, Interventions, url, Public_title, everything())
 
 write_csv(ictrp_main, paste0(file_path, output_folder, output_subfolder, "ictrp_main.csv"))
 write_csv(ictrp_im, paste0(file_path, output_folder, output_subfolder, "ictrp_im.csv"))
