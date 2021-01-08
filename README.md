@@ -1,7 +1,9 @@
 # Overview
 This repo is for work done for the registered report: Association between investigating COVID-19 and design characteristics in global clinical trial registrations (the stage 1 in principal acceptance, i.e. protocol and planned analysis code, is [here](https://osf.io/f6d2v/)).
 
-# Script processing order
+# Workflow description 
+Here the script processing order and any manual steps taken are explained.
+
 ## Data download 
 The raw data file from ICTRP is too large to push to GitHub. It is instead stored on OSf.
 
@@ -18,10 +20,19 @@ To run the data processing script with the full dataset, the main raw data file 
 
 2. `filter_data.R`
 
-    * Takes output of `clean_data.R` and removes withdrawn trials, limits to interventional trials, limits dates, filters conditions, randomly orders rows and creates csvs for manual eligibility screen.
+    * Takes output of `clean_data.R` and removes withdrawn trials, limits to interventional trials, limits dates, filters conditions, randomly orders rows and creates csvs for manual eligibility screen. 
+    
+3. Manual eligibility screen
+
+    * The output produced from `filter_data.R` was copied into a new intermediate subfolder: `data/manual_processing/eligibility_screen/intermediate/for_screening` where the files were manually converted to .xlsx format. Each file was opened and all data converted to a table (Insert > Table). The include column was then edited so that the only inputs allowed were: "1, 0, Unsure" using the data validation tool (Data > Data validation. Allow: List. Source: "1,0,Unsure"). Copies of these files were distributed for eligiblility screening. 
+    
+    * Eligibility screens were done in duplicate by two reviewers and the results of the screen are in `...intermediate/screened`
+    
+    * `compare_eligibility.R` takes the datasets screened for eligibility and compares the decisions, producing a dataset for each of the arms of the dataset with any disagreements. The new datasets contain a column for the final consensus decision and a column any notes about the decisions. The produced csv files are located in  `...intermediate/for_screening`. Copies of these were screened to examine sources of disagreements and consensus reached. 
+  
   
 # Dependency management
-The project uses [`renv`](https://rstudio.github.io/renv/articles/renv.html). Use `renv::restore()` to download the correct package versions. 
+The project uses [`renv`](https://rstudio.github.io/renv/articles/renv.html). Use `renv::restore()` to download the correct package versions and ensure computational reproducibility. 
 
 # Raw Data
 ICTRP data for control samples were downloaded from ICTRP on 23rd November 2020 from the 'full data download' here: https://www.who.int/ictrp/data/en/ and were up to date on 23rd November. Checking the database on 8th December 2020 there was no further update to the data, but the data fields file was better formatted than the version I had, so that was downloaded on 8th Dec. COVID-19 trial data were downloaded on 8th December 2020 from `Download COVID-19 trials csv format [7022 rows, updated on: 4 December 2020]` link here: https://www.who.int/clinical-trials-registry-platform.
