@@ -12,7 +12,6 @@
 # Load -----
 library(tidyverse)
 library(readxl)
-library(writexl)
 
 # Inputs -----
 # path to screened files which are compared
