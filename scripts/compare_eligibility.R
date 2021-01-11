@@ -1,13 +1,14 @@
 # Compare eligibility screens
 
-# Script takes the manual eligibility screen spreadsheets, checks that they
+# The script takes the manual eligibility screen spreadsheets, checks that they
 # still have the right trial numbers and urls compared to the csv used to
 # generate them, and compares the decisions on eligibility screening
 
-# Output files produced are csvs including only those trial registrations on
-# which the screening decisions differed. The purpose of those files is to come
-# to manually review them and come to a consensus decision on
-# inclusion/exclusion
+# Output files produced are 1) csvs of trials where the screening decisions
+# differed (of those that were reviewed by both extractors) which are needed for
+# further manual review for a consensus decision and 2) csvs with trial
+# registrations that both authors agreed should be included, which are used to
+# generate the final dataset in another script
 
 # Load -----
 library(tidyverse)
@@ -63,6 +64,7 @@ ictrp_main_ct <- ictrp_main_ct[1:3501, ]
 text <- setdiff(ictrp_main_ct$TrialID, ictrp_main_orig$TrialID)
 ictrp_main_js <- filter(ictrp_main_js, TrialID != text)
 ictrp_main_ct <- filter(ictrp_main_ct, TrialID != text)
+rm(text)
 
 # Checks and wrangling -----
 # Check key variables are the same as original data and in correct order
@@ -78,6 +80,7 @@ re_order <- match(covid_orig$TrialID, covid_ct$TrialID)
 covid_ct <- covid_ct[re_order, ]
 re_order <- match(ictrp_main_orig$TrialID, ictrp_main_ct$TrialID)
 ictrp_main_ct <- ictrp_main_ct[re_order, ]
+rm(re_order)
 
 # check that they are now equal to original and js
 all.equal(covid_orig$TrialID, covid_ct$TrialID)
@@ -95,8 +98,8 @@ all.equal(ictrp_main_js$TrialID, ictrp_main_ct$TrialID)
 x <- covid_js$Include[1:1270]
 y <- covid_ct$Include[1:1270]
 
-# Keep any that don't match or that have NA (e.g. F:NA , NA:T, NA:NA pairs).
-# There shouldn't be any NAs at this stage 
+# Keep any that don't match or that have NA (e.g. F:NA , NA:T, NA:NA pairs) for
+# further screening. There shouldn't be any NAs at this stage
 keep <- (x != y) | (is.na(x)) | (is.na(y))
 # Get the row indices
 keep <- which(keep)
@@ -112,6 +115,11 @@ covid_disagree <- bind_cols(covid_ct[keep, 1], covid_js[keep, 1], covid_orig[kee
   mutate(Consensus_notes = NA) %>% 
   select(Include_ct, Include_js, Decision, Consensus_notes, everything())
 
+# make dataset of those agreed to include
+keep <- which(x == 1 & y == 1)
+covid_agree <- covid_orig[keep, ]%>% 
+  select(-Include)
+
 # Main trials
 # 1969 rows have been screened by both extractors, so we only look at these
 x <- ictrp_main_js$Include[1:1969]
@@ -126,6 +134,7 @@ keep <- which(keep)
 # proportion disagreement out of those assessed by both extractors
 length(keep)/1969 # 0.07211783
 
+# make dataset with disagreements
 ictrp_main_disagree <- bind_cols(ictrp_main_ct[keep, 1], ictrp_main_js[keep, 1], ictrp_main_orig[keep, ]) %>% 
   rename(Include_ct = Include...1, 
          Include_js = Include...2, 
@@ -133,9 +142,21 @@ ictrp_main_disagree <- bind_cols(ictrp_main_ct[keep, 1], ictrp_main_js[keep, 1],
   mutate(Consensus_notes = NA) %>% 
   select(Include_ct, Include_js, Decision, Consensus_notes, everything())
 
+# make dataset of those agreed to include
+keep <- which(x == 1 & y == 1)
+ictrp_main_agree <- ictrp_main_orig[keep, ] %>% 
+  select(-Include)
+rm(keep, x, y)
+
 # Write output files -----
 write_csv(covid_disagree, 
           paste0(root_path, screening_path, "covid_disagreements.csv"))
 write_csv(ictrp_main_disagree, 
           paste0(root_path, screening_path, "ictrp_main_disagreements.csv"))
+write_csv(covid_agree, 
+          paste0(root_path, screened_path, "covid_agree_include.csv"))
+write_csv(ictrp_main_agree, 
+          paste0(root_path, screened_path, "ictrp_main_agree_include.csv"))
+
+
 
