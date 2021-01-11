@@ -1,3 +1,13 @@
+# Compare eligibility screens
+
+# Script takes the manual eligibility screen spreadsheets, checks that they
+# still have the right trial numbers and urls compared to the csv used to
+# generate them, and compares the decisions on eligibility screening
+
+# Output files produced are csvs including only those trial registrations on
+# which the screening decisions differed. The purpose of those files is to come
+# to manually review them and come to a consensus decision on
+# inclusion/exclusion
 
 # Load -----
 library(tidyverse)
