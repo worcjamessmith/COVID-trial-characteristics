@@ -5,11 +5,11 @@ This repo is for work done for the registered report: Association between invest
 Here the script processing order and any manual steps taken are explained.
 
 ## Data download 
-The raw data file from ICTRP is too large to push to GitHub. It is instead stored on OSf.
+The raw data file from ICTRP is too large to push to GitHub. It is instead stored on OSF.
 
 1. `download_raw_data.R`
     
-    * This downloads the large raw data file from OSF. You could also use it to download the zipped file if the csv is too large. The other necessary raw data files are already in this repo. 
+    * This downloads the large raw data file from OSF. You could also use it to download the zipped file if the csv is too large. The other necessary raw data files are already in this repo (see description of raw data files below). 
 
 ## Data processing
 To run the data processing script with the full dataset, the main raw data file (`ICTRPFullExport-672212-23-11-20.csv`) needs to be added to the `data/initial_import/raw` folder. See info on raw data files below. There is a 1% sample of the raw data provided in this repo to demonstrate computational reproducibility, but the full file is too large to push to github. The scripts will create the necessary folders and subfolders.
@@ -22,20 +22,26 @@ To run the data processing script with the full dataset, the main raw data file 
 
     * Takes output of `clean_data.R` and removes withdrawn trials, limits to interventional trials, limits dates, filters conditions, randomly orders rows and creates csvs for manual eligibility screen. 
     
-3. Manual eligibility screen
+## Manual eligibility screen
 
-    * The output produced from `filter_data.R` was copied into a new intermediate subfolder: `data/manual_processing/eligibility_screen/intermediate/for_screening` where the files were manually converted to .xlsx format. Each file was opened and all data converted to a table (Insert > Table). The include column was then edited so that the only inputs allowed were: "1, 0, Unsure" using the data validation tool (Data > Data validation. Allow: List. Source: "1,0,Unsure"). Copies of these files were distributed for eligiblility screening. 
+The output produced from `filter_data.R` was copied into a new intermediate subfolder: `data/manual_processing/eligibility_screen/intermediate/for_screening` where the files were manually converted to .xlsx format. Each file was opened and all data converted to a table (Insert > Table). The include column was then edited so that the only inputs allowed were: "1, 0, Unsure" using the data validation tool (Data > Data validation. Allow: List. Source: "1,0,Unsure"). Copies of these files were distributed for eligiblility screening. 
     
-    * Eligibility screens were done in duplicate by two reviewers and the results of the screen are in `...intermediate/screened`
+Eligibility screens were done in duplicate by two reviewers and the results of the screen are in `...intermediate/screened`
     
-    * `compare_eligibility.R` takes the datasets screened for eligibility and compares the decisions, producing a dataset for each of the arms of the dataset with any disagreements. The new datasets contain a column for the final consensus decision and a column any notes about the decisions. The produced csv files are located in  `...intermediate/for_screening`. Copies of these were screened to examine sources of disagreements and consensus reached. 
+3. `compare_eligibility.R` 
+
+    * Takes the datasets screened for eligibility and compares the decisions, producing a dataset for each of the arms of the dataset with any disagreements. The new datasets contain a column for the final consensus decision and a column any notes about the decisions. The produced csv files are located in  `...intermediate/for_screening`. Copies of these were converted to excel files and screened to examine sources of disagreements and decide on inclusion/exclusion.
+    
+The files with consensus decisions are in `...intermediate/screened` (suffix `_consolidated`.
+  
+4. 
   
   
 # Dependency management
 The project uses [`renv`](https://rstudio.github.io/renv/articles/renv.html). Use `renv::restore()` to download the correct package versions and ensure computational reproducibility. 
 
 # Raw Data
-ICTRP data for control samples were downloaded from ICTRP on 23rd November 2020 from the 'full data download' here: https://www.who.int/ictrp/data/en/ and were up to date on 23rd November. Checking the database on 8th December 2020 there was no further update to the data, but the data fields file was better formatted than the version I had, so that was downloaded on 8th Dec. COVID-19 trial data were downloaded on 8th December 2020 from `Download COVID-19 trials csv format [7022 rows, updated on: 4 December 2020]` link here: https://www.who.int/clinical-trials-registry-platform.
+ICTRP data for control samples were downloaded from ICTRP on 23rd November 2020 from the 'full data download' here: https://www.who.int/ictrp/data/en/ and were up to date on 23rd November. Checking the database on 8th December 2020 there was no further update to the data, but the data fields file was better formatted than the version I had, so that was downloaded on 8th Dec. COVID-19 trial data were downloaded on 8th December 2020 from the `Download COVID-19 trials csv format [7022 rows, updated on: 4 December 2020]` link here: https://www.who.int/clinical-trials-registry-platform.
 
 There will be four files in `data/initial_import/raw` if you run the `download_raw_data.R` script to get the ICTRP data. 
 
