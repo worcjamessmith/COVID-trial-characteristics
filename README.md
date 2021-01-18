@@ -34,7 +34,9 @@ Eligibility screens were done in duplicate by two reviewers and the results of t
     
 The files with consensus decisions are in `...intermediate/screened` (suffix `_consolidated`.
   
-4. 
+4. `list_included_trials.R`
+
+    * Combines consensus decisions from disagreements with agreements from the first screen, and produces the stratified random samples of 15% data used for manual extraction for quality control. 
   
   
 # Dependency management
