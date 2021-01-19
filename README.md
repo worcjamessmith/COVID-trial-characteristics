@@ -24,7 +24,7 @@ To run the data processing script with the full dataset, the main raw data file 
     
 ## Manual eligibility screen
 
-The output produced from `filter_data.R` was copied into a new intermediate subfolder: `data/manual_processing/eligibility_screen/intermediate/for_screening` where the files were manually converted to .xlsx format. Each file was opened and all data converted to a table (Insert > Table). The include column was then edited so that the only inputs allowed were: "1, 0, Unsure" using the data validation tool (Data > Data validation. Allow: List. Source: "1,0,Unsure"). Copies of these files were distributed for eligiblility screening. 
+The output produced from `filter_data.R` was copied into a new intermediate subfolder: `data/manual_processing/eligibility_screen/intermediate/for_screening` where the files were manually converted to .xlsx format. Each file was opened and all data converted to a table (Insert > Table). The include column was then edited so that the only inputs allowed were: "1, 0, Unsure" using the data validation tool (Data > Data validation. Allow: List. Source: "1,0,Unsure"). Copies of these files were distributed for eligibility screening. 
     
 Eligibility screens were done in duplicate by two reviewers and the results of the screen are in `...intermediate/screened`
     
