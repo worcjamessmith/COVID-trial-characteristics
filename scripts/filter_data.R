@@ -83,7 +83,7 @@ ictrp_im <- ictrp %>%
 ictrp_main <- ictrp %>% 
   filter(Date_registration_format >= "2019-01-01" & 
            Date_registration_format <= "2019-12-08")
-rm(ictrp)
+# rm(ictrp)
 
 # covid arm 
 covid <- covid %>% 
@@ -125,6 +125,8 @@ ictrp_im <- ictrp_im[-rows, ]
 # Filter indication-matched conditions -----
 
 # conditions copied directly from inclusion criteria is S1-IPA
+# IMPORTANT: there is a mistake in the im_conds list which is corrected below. 
+# See section "correct indication matched filtering" for information and correction
 im_conds <- c("septic shock",
               "multi organ failure", "multiple organ failure", "multiple organ dysfunction",
               "syndrome", "multiple systems organ failure", "multisystem organ failure",
@@ -177,8 +179,85 @@ covid <- covid %>%
   mutate(Include = NA) %>% 
   select(Include, Scientific_title, Interventions, url, Public_title, everything())
 
+# Write files ----- 
 write_csv(ictrp_main, paste0(file_path, output_folder, output_subfolder, "ictrp_main.csv"))
-write_csv(ictrp_im, paste0(file_path, output_folder, output_subfolder, "ictrp_im.csv"))
+# write_csv(ictrp_im, paste0(file_path, output_folder, output_subfolder, "ictrp_im.csv"))
 write_csv(covid, paste0(file_path, output_folder, output_subfolder, "covid.csv"))
+
+# Correct indication matched filtering -----
+
+# There is a mistake in the filtering of indications in the indication matched
+# dataset above: "syndrome" is used alone rather than as part of the full
+# expression: "multiple organ dysfunction syndrome". We also noticed that the
+# terms "flu" and "ards" were returning irrelevant results. Here this is
+# corrected. Correcting the filtering results in many fewer potentially eligible
+# trials, so we also extend the time frame over which we sample.
+
+# This is done here rather than correcting above as that would change the
+# specific random sample drawn for the other arms, which had already been
+# reviewed when this mistake was noticed.
+
+im_conds <- c("septic shock",
+              "multi organ failure", "multiple organ failure", 
+              "multiple organ dysfunction syndrome",
+              "multiple systems organ failure", "multisystem organ failure",
+              "cardiogenic shock",
+              "myocarditis", "myocardial inflammation",
+              "myocardial ischaemia",
+              "respiratory failure", "respiratory insufficiency",
+              "ARDS", "respiratory distress syndrome",
+              "Pneumonia",
+              "influenza", "flu",
+              "respiratory arrest", "apnea", "breathing cessation", "breathing stops", "pulmonary arrest",
+              "cardiac arrest", "heart attack", "asystole", "asystolia", "asystolic")
+
+rows <- grep(paste(im_conds,collapse="|"), 
+             ictrp$Conditions, ignore.case= T)
+
+ictrp_im <- ictrp[rows, ]
+
+# irrelevant "conditions" that come up when "flu" searched
+flu_false_conds <- c("fluor", "influenc", "fluid", "flush", "effluvium", 
+                     "reflux", "flutter", "flurane", "Flurpiridaz", "fluent", 
+                     "leflunomide", "Fluconazole", "fludarabine", 
+                     "fluctuat", "fluoxetine", "Scheimpflug","TRIFLURIDINE",
+                     "flucytosine", "fluoxetine")
+
+rows <- grep(paste(flu_false_conds, collapse="|"),
+             ictrp_im$Conditions, ignore.case= T)
+
+ictrp_im <- ictrp_im[-rows, ]
+
+# irrelevant "conditions" when searching "ards"
+ards_false_conds <- c("Stewards", "hazards", "towards", "wards",
+                      "regards", "retardSystem", "Richardson")
+
+rows <- grep(paste(ards_false_conds, collapse="|"),
+             ictrp_im$Conditions, ignore.case= T)
+
+ictrp_im <- ictrp_im[-rows, ]
+
+# remove any covid trials
+rows <- grep(paste(cov_conds, collapse="|"),
+             ictrp_im$Conditions, ignore.case= T)
+
+ictrp_im <- ictrp_im[-rows, ]
+
+# filter the dates. 2016 should give sufficient sample size
+ictrp_im <- ictrp_im %>% 
+  filter(Date_registration_format >= "2016-01-01" & 
+           Date_registration_format <= "2019-12-31")
+
+# randomly order the rows according to the pre-specified code
+set.seed(1234)
+rows <- sample(nrow(ictrp_im)) 
+ictrp_im <- ictrp_im[rows, ]
+
+ictrp_im <- ictrp_im %>% 
+  mutate(Include = NA) %>% 
+  select(Include, Scientific_title, Interventions, url, Public_title, everything()) 
+
+# Write corrected file -----
+write_csv(ictrp_im, paste0(file_path, output_folder, output_subfolder, "ictrp_im.csv"))
 
 
