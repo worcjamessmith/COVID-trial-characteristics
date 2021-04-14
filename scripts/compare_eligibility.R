@@ -22,6 +22,8 @@ covid_js <- "covid_JS.xlsx"
 covid_ct <- "covid_CT.xlsx"
 ictrp_main_js <- "ictrp_main_JS.xlsx"
 ictrp_main_ct <- "ictrp_main_CT.xlsx"
+ictrp_im_ra <- "ictrp_im_ra.xlsx"
+ictrp_im_ct <- "ictrp_im_ct.xlsx"
 
 # output goes here
 screening_path <- "intermediate/for_screening/"
@@ -31,6 +33,7 @@ screening_path <- "intermediate/for_screening/"
 # root_path
 covid_orig <- "covid.csv"
 ictrp_main_orig <- "ictrp_main.csv"
+ictrp_im_orig <- "ictrp_im.csv"
 
 # Import data -----
 covid_js <- read_xlsx(paste0(root_path, screened_path, covid_js), 
@@ -48,6 +51,17 @@ ictrp_main_ct <- read_xlsx(paste0(root_path, screened_path, ictrp_main_ct),
                            guess_max = 21474836,
                            na = "NA")
 ictrp_main_orig <- read_csv(paste0(root_path, ictrp_main_orig))
+
+# note that for the indication matched data, RA screened 1:1000 of these, CT
+# screened 1001:2000
+ictrp_im_ra <- read_xlsx(paste0(root_path, screened_path, ictrp_im_ra), 
+                           guess_max = 21474836,
+                           na = "NA")
+# JS did these
+ictrp_im_ct <- read_xlsx(paste0(root_path, screened_path, ictrp_im_ct), 
+                           guess_max = 21474836,
+                           na = "NA")
+ictrp_im_orig <- read_csv(paste0(root_path, ictrp_im_orig))
 
 # Clean -----
 # Two extra rows in covid_ct to remove (checked manually that are just
@@ -73,6 +87,12 @@ all.equal(covid_js$url, covid_orig$url)
 
 all.equal(ictrp_main_js$TrialID, ictrp_main_orig$TrialID)
 all.equal(ictrp_main_js$url, ictrp_main_orig$url)
+
+all.equal(ictrp_im_ra$TrialID, ictrp_im_orig$TrialID)
+all.equal(ictrp_im_ra$url, ictrp_im_orig$url)
+
+all.equal(ictrp_im_ct$TrialID, ictrp_im_orig$TrialID)
+all.equal(ictrp_im_ct$url, ictrp_im_orig$url)
 
 # order is not as it was in covid_ct or ictrp_main_ct - reorder to the same as
 # original
@@ -105,10 +125,12 @@ keep <- (x != y) | (is.na(x)) | (is.na(y))
 keep <- which(keep)
 
 # proportion disagreement out of those assessed by both extractors
-length(keep)/1270 # 0.05984252
+length(keep)/length(x) # 0.05984252
 
 # create df of disagreements and original assessor decisions
-covid_disagree <- bind_cols(covid_ct[keep, 1], covid_js[keep, 1], covid_orig[keep, ]) %>% 
+covid_disagree <- bind_cols(covid_ct[keep, 1], 
+                            covid_js[keep, 1], 
+                            covid_orig[keep, ]) %>% 
   rename(Include_ct = Include...1, 
          Include_js = Include...2, 
          Decision = Include...3) %>% 
@@ -132,10 +154,12 @@ keep <- (x != y) | (is.na(x)) | (is.na(y))
 keep <- which(keep)
 
 # proportion disagreement out of those assessed by both extractors
-length(keep)/1969 # 0.07211783
+length(keep)/length(x) # 0.07211783
 
 # make dataset with disagreements
-ictrp_main_disagree <- bind_cols(ictrp_main_ct[keep, 1], ictrp_main_js[keep, 1], ictrp_main_orig[keep, ]) %>% 
+ictrp_main_disagree <- bind_cols(ictrp_main_ct[keep, 1], 
+                                 ictrp_main_js[keep, 1], 
+                                 ictrp_main_orig[keep, ]) %>% 
   rename(Include_ct = Include...1, 
          Include_js = Include...2, 
          Decision = Include...3) %>% 
@@ -148,15 +172,49 @@ ictrp_main_agree <- ictrp_main_orig[keep, ] %>%
   select(-Include)
 rm(keep, x, y)
 
+# ICTRP indication matched
+# 2200 rows have been screened in both datasets, so we only look at these
+x <- ictrp_im_ra$Include[1:2200]
+y <- ictrp_im_ct$Include[1:2200]
+
+# Keep any that don't match or that have NA (e.g. F:NA , NA:T, NA:NA pairs).
+# There shouldn't be any NAs at this stage 
+keep <- (x != y) | (is.na(x)) | (is.na(y))
+# Get the row indices
+keep <- which(keep)
+
+# proportion disagreement out of those assessed by both extractors
+length(keep)/length(x) # 0.05545455
+
+# make dataset with disagreements
+ictrp_im_disagree <- bind_cols(ictrp_im_ra[keep, 1], 
+                               ictrp_im_ct[keep, 1], 
+                               ictrp_im_orig[keep, ]) %>% 
+  # note now these colums are named after who actually did the screening
+  rename(Include_ct_ra = Include...1, 
+         Include_js = Include...2, 
+         Decision = Include...3) %>% 
+  mutate(Consensus_notes = NA) %>% 
+  select(Include_ct_ra, Include_js, Decision, Consensus_notes, everything())
+
+# make dataset of those agreed to include
+keep <- which(x == 1 & y == 1)
+ictrp_im_agree <- ictrp_im_orig[keep, ] %>% 
+  select(-Include)
+rm(keep, x, y)
+
 # Write output files -----
 write_csv(covid_disagree, 
           paste0(root_path, screening_path, "covid_disagreements.csv"))
 write_csv(ictrp_main_disagree, 
           paste0(root_path, screening_path, "ictrp_main_disagreements.csv"))
+write_csv(ictrp_im_disagree, 
+          paste0(root_path, screening_path, "ictrp_im_disagreements.csv"))
 write_csv(covid_agree, 
           paste0(root_path, screened_path, "covid_agree_include.csv"))
 write_csv(ictrp_main_agree, 
           paste0(root_path, screened_path, "ictrp_main_agree_include.csv"))
-
+write_csv(ictrp_im_agree, 
+          paste0(root_path, screened_path, "ictrp_im_agree_include.csv"))
 
 
