@@ -1,5 +1,6 @@
 # Generate final list of included trials and sample them to make dataset for
-# manual data extraction quality control step
+# manual data extraction quality control step, and datasets for automated
+# extraction.
 
 # Load -----
 library(tidyverse)
