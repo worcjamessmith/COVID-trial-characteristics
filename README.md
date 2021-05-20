@@ -36,7 +36,12 @@ The files with consensus decisions are in `...intermediate/screened` (suffix `_c
   
 4. `list_included_trials.R`
 
-    * Combines consensus decisions from disagreements with agreements from the first screen, and produces the stratified random samples of 15% data used for manual extraction for quality control. 
+    * Combines consensus decisions from disagreements with agreements from the first screen, and produces the stratified random samples of 15% data used for manual extraction for quality control. Also produces csv files of all eligible trials identified and the 847 trials specified in the protocol to be used as the final dataset. All eligible trials are stored in case we need to add more trials at a later date.
+    
+The random samples for manual extraction are in: `data/manual_processing/manual_extraction/random_sample/`.
+The lists of eligible trials, including the subsets of 847 trials, are in `data/manual_processing/eligibility_screen/eligible_trials/`.
+
+
   
   
 # Dependency management
