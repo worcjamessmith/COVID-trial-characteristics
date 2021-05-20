@@ -40,9 +40,6 @@ The files with consensus decisions are in `...intermediate/screened` (suffix `_c
     
 The random samples for manual extraction are in: `data/manual_processing/manual_extraction/random_sample/`.
 The lists of eligible trials, including the subsets of 847 trials, are in `data/manual_processing/eligibility_screen/eligible_trials/`.
-
-
-  
   
 # Dependency management
 The project uses [`renv`](https://rstudio.github.io/renv/articles/renv.html). Use `renv::restore()` to download the correct package versions and ensure computational reproducibility. 
