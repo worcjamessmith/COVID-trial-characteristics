@@ -383,8 +383,6 @@ d_2 <- d_2 %>%
       randomisation == "Yes" ~ "Yes", 
       TRUE ~ control_arm)) 
 
-# count(d_2, analyst_blind)
-
 d_2 <- d_2 %>% 
   mutate(
     subject_blind = ifelse(
@@ -471,26 +469,30 @@ phase4 = c("4", "Post Marketing Surveillance", "Phase 4",
            "IV (Phase IV study)",
            "Human pharmacology (Phase I): no\nTherapeutic exploratory (Phase II): no\nTherapeutic confirmatory - (Phase III): no\nTherapeutic use (Phase IV): yes\n")
 
-undefined = c("N/A", "Not Applicable", "Bioequivalence", 
+undefined = c("Bioequivalence", 
               "Not applicable", "Other", "New Treatment Measure Clinical Study",
               "Human pharmacology (Phase I): no                Therapeutic exploratory (Phase II): yes                Therapeutic confirmatory - (Phase III): no                Therapeutic use (Phase IV): yes",
               "Basic Science", "Pilot study" )
 
-unreported = c("Not selected", "NULL", "Not Specified")
+unreported = c("Not selected", "NULL", "Not Specified", "N/A", "Not Applicable")
 
 # number 33 of p is NA, need to deal with that separately 
 
 d_2 <- d_2 %>%
   mutate(
     phase_clean = case_when(
-      Phase %in% phase1 ~ "1",
-      Phase %in% phase2 ~ "2",
-      Phase %in% phase3 ~ "3",
-      Phase %in% phase4 ~ "4", 
+      Phase %in% phase1 ~ "Phase 1",
+      Phase %in% phase2 ~ "Phase 2",
+      Phase %in% phase3 ~ "Phase 3",
+      Phase %in% phase4 ~ "Phase 4", 
       Phase %in% undefined ~ "Undefined", 
-      Phase %in% unreported ~ NA_character_))
+      Phase %in% unreported ~ "Unreported",
+      is.na(Phase) ~ "Unreported"))
 
 rm(p1, phase1, phase2, phase3, phase4, undefined, unreported)
+
+# correct one described as P2/P4 which based on manual check is phase 2
+d_2[d_2$TrialID=="EUCTR2018-004305-11-GB", "phase_clean"] <- "Phase 2"
 
 # 3. SPONSOR TYPE -----
 sponsor <- d_2 %>% 
@@ -502,7 +504,7 @@ not_ind <- c("universi",  # all ignore.case = T
               "department",
               "institut", "insitute", # second due to typo in one entry
               "hospital",
-              "centre|center",
+              "centre", "center",
               "council",
               "college",
               "academy",
@@ -510,37 +512,65 @@ not_ind <- c("universi",  # all ignore.case = T
               "Hôpitaux",
               "Hopitaux",
               "Foundation",
-              "school"
+              "school",
+             "Mayo Clinic",
+             "World Health Organization",
+             "NYU Langone Health",
+             "The Cleveland Clinic",
+             "Radboudumc"
               )  
 
 industry <- c("pharma", # all ignore.case = T
-              " Inc",
-              " Ltd",
-              "Co\\.", # deliberate no space
-              " S\\.A\\.",
+              "\\bInc",
+              "\\bLtd",
+              "\\bCo\\b", 
+              "S\\.A\\.",
               "Company",
               "Limited",
               "Corporation",
-              " plc",
-              " GmbH",
-              " AG$",
-              " KGaA",
-              " SA$",
-              " Corp\\.",
-              " LP",
-              " LLC",
-              " NV",
-              " AB$",
-              " KK",
+              "\\bplc",
+              "\\bGmbH",
+              "\\bAG$",
+              "\\bKGaA",
+              "\\bCorp\\.",
+              "\\bLP",
+              "\\bLLC",
+              "\\bNV",
+              "\\bAB$",
+              "\\bKK",
               "Therapeutics",
-              "labs"
+              "labs",
+              "\\bSAS",
+              "glaxo",
+              "zeneca",
+              "bioscience",
+              "\\bSA\\b",
+              "Novartis",
+              "ingelheim",
+              "\\bSAS\\b",
+              "Bayer",
+              "Merck",
+              "Pfizer",
+              "sanofi",
+              "biopharm",
+              "\\bS\\.p\\.A",
+              "Farmaceutic",
+              "Takeda",
+              "La Roche",
+              "La-Roche",
+              "Seqirus",
+              "AbbVie",
+              "Novavax",
+              "Novo Nordisk",
+              "shionogi"
               )
 
-investigator <- c(" MD",
-                  " phd",
-                  "^dr ", "^dr\\.",
+investigator <- c("\\bMD\\b",
+                  "\\bphd",
+                  "^dr\\b",
                   "prof"
                   )
+
 
 non_ind <- grep(
   paste0(not_ind, collapse = "|"),
@@ -555,30 +585,36 @@ inv <- grep(
   paste0(investigator, collapse = "|"),
   d_2$Primary_sponsor, ignore.case = T)
 
+# Those that were returned by more than one grep are removed
+x <- c(non_ind, ind, inv)
+x <- x[!(duplicated(x) | duplicated(x, fromLast = TRUE))]
+
+non_ind <- non_ind[non_ind %in% x]
+ind <- ind[ind %in% x]
+inv <- inv[inv %in% x] 
+
 d_2$sponsor_type <- NA
 d_2$sponsor_type[non_ind] <- "non_industry"
 d_2$sponsor_type[ind] <- "industry"
 d_2$sponsor_type[inv] <- "investigator"
 
-table(d_2$sponsor_type, useNA = "always")
-
-# find those that are returned by multiple searches (e.g. ind and non_ind)
-# assign all of these NA and be done manually later
-x <- unlist(list(non_ind, ind, inv))
-d_2$Primary_sponsor[unique(x[duplicated(x)])] <- NA
-
 rm(ind, industry, inv, investigator, non_ind, not_ind, x)
 
-# done <- unique(c(ind, non_ind, inv))
+# x <- grep("S\\.A\\.", d_2$Primary_sponsor, ignore.case = T)
+# d_2$Primary_sponsor[x]
 
-# d_2 %>% 
-#   filter(is.na(sponsor_type)) %>% 
-#   select(Source_registry, Primary_sponsor) %>% 
+# d_2 %>%
+#   filter(is.na(sponsor_type)) %>%
+#   select(Primary_sponsor) %>%
+#   distinct() %>% 
 #   View()
-
-# also check that all the individuals aren't coming from one source registry or something
-# check coverage of ct.gov # 287 missing (23%). 4/5 coverage in general
-# so would be nice to get the ct.gov classifications if poss
+# 
+# d_2 %>%
+#   filter(is.na(sponsor_type)) %>%
+#   select(Primary_sponsor) %>%
+#   group_by_all() %>%
+#   filter(n() >2) %>%
+#   distinct() %>% View()
 
 # JPRN ones appear to be the ones providing all the named individuals. Need to
 # check these are accurate. Although they are not all individuals, about half
@@ -593,15 +629,20 @@ rm(ind, industry, inv, investigator, non_ind, not_ind, x)
 # or  registration  date  is found  in  all  registry  entries,  we  will
 # consider the study retrospectively registered
 
-# Date_registration_format, Date_enrollment_format are the relevant cols
+# fix incorrect date
+d_2[which(d_2$Date_enrollment_format == "2640-06-22"), "Date_enrollment_format"] <- 
+  as.Date("2019-04-01")
 
+# Date_registration_format, Date_enrollment_format are the relevant cols
 d_2 <- d_2 %>% 
   mutate(
     reg_enrol_difference = Date_enrollment_format - Date_registration_format,
     prospective = case_when(
       sign(reg_enrol_difference) == -1 ~ "No",
-      sign(reg_enrol_difference) == 0 ~ "No",
-      sign(reg_enrol_difference) == 1 ~ "Yes"))
+      sign(reg_enrol_difference) == 0 ~ "Yes",
+      sign(reg_enrol_difference) == 1 ~ "Yes",
+      # missing means retrospective
+      is.na(Date_enrollment_format) ~ "No"))
 
 # for those with the date inferred, override the values we just created because
 # the number of days is innacurate and the prospective registration needs to be
@@ -642,6 +683,9 @@ countries_list <- lapply(countries_list, unique)
 
 # change alternative spellings 
 countries_list[which(countries_list %in% c("China?", "CHINA"))] <- "China"
+countries_list[which(countries_list == "Japan,Asia(except Japan)")] <- "Japan"
+countries_list[which(countries_list == "Tanzania")] <- "United Republic of Tanzania"
+countries_list[which(countries_list == "Hat Yai")] <- "Thailand"
 
 countries_list[which(countries_list == "NULL")] <- NA
 
@@ -740,14 +784,14 @@ countries_list <-
     gsub("The Netherlands", "Netherlands", x))
 
 continents[grep("voire", continents[, 2], value = TRUE), 2] <-
-  "Cote D'Ivoire"
+  "Côte d’Ivoire"
 
 countries_list <-
   lapply(countries_list, function(x)
-    gsub("Cote Divoire", "Cote D'Ivoire", x))
+    gsub("Cote Divoire", "Côte d’Ivoire", x))
 countries_list <-
   lapply(countries_list, function(x)
-    gsub("CÃ´te D'Ivoire", "Cote D'Ivoire", x))
+    gsub("CÃ´te D'Ivoire", "Côte d’Ivoire", x))
 
 # merge with continents again
 regions_list <-
@@ -806,7 +850,7 @@ regions_list <-
     return(data.frame(x))
   })
 
-unmatched <- lapply(regions_list, function(x) x[which(is.na(x$Region.Name)),])
+# unmatched <- lapply(regions_list, function(x) x[which(is.na(x$Region.Name)),])
 # unique(do.call(rbind, unmatched[which(unlist(lapply(unmatched, function(x) dim(x)[1])) > 0)]))
 
 lapply(regions_list[which(unlist(lapply(regions_list, function(x)
@@ -831,6 +875,17 @@ d_2$region_Europe <-
   ifelse(grepl("Europe", d_2$region), "Yes", "No")
 d_2$region_Oceania <-
   ifelse(grepl("Oceania", d_2$region), "Yes", "No")
+
+d_2[d_2$Countries == "Japan, South America, Europe" &
+      !is.na(d_2$Countries), ]$region_Asia <- "Yes"  
+d_2[d_2$Countries == "Japan, South America, Europe" &
+      !is.na(d_2$Countries), ]$region_L_America <- "Yes"  
+d_2[d_2$Countries == "Japan, Asia except Japan, North America, South America, Europe" &
+      !is.na(d_2$Countries), ]$region_Asia <- "Yes"  
+d_2[d_2$Countries == "Japan, Asia except Japan, North America, South America, Europe" &
+      !is.na(d_2$Countries), ]$region_L_America <- "Yes"  
+d_2[d_2$Countries == "Japan, Asia except Japan, North America, South America, Europe" &
+      !is.na(d_2$Countries), ]$region_Europe <- "Yes"  
 
 unreported <-
   which(
@@ -891,6 +946,9 @@ d_2[which(grepl("\\D", d_2$Target_size)), ]$sample_size <-
     total <- sum(as.numeric(ss), na.rm = TRUE)
     return(total)
   })
+
+# one is incorrect as shown by comparison to ND. Fix
+d_2[d_2$TrialID == "ChiCTR2000032135", "sample_size"] <- 50
 
 
 # 8. INTERVENTION TYPE -----
@@ -959,19 +1017,24 @@ d_2 <- d_2 %>%
     ), "Yes", NA)
   ) 
     
-
 # Make dataset -----
 
-x <- d_2 %>% 
+d_save <- d_2 %>% 
   select(TrialID, url, Scientific_title, Conditions, Date_enrollment_format,
          control_arm, randomisation, blinding, subject_blind, 
          caregiver_blind, investigator_blind, outcome_blind, analyst_blind,
          prospective, Source_registry, phase_clean, 
          region_Africa:region_Oceania, 
          multicentre, primary_purpose, sponsor_type, sample_size,
-         vaccine, conventional, traditional)
+         vaccine, conventional, traditional, 
+         # extras for checks
+         Study_design, Day_inferred, Date_registration_format,
+         Phase, Public_title, Countries)
 
-x %>% 
+write_csv(d_save, "2021.07.01_check_JS.csv")
+
+
+d_save %>% 
   select(control_arm:traditional) %>% 
   lapply(function(x) table(x, useNA = "a"))
 
