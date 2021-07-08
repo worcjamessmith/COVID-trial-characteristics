@@ -51,7 +51,6 @@ d <- rename(d, study_arm = id)
 d_subset <- d %>% 
   select(study_arm, Source_registry, TrialID, Study_design, )
 
-  
 # clinicaltrials.gov ----- 
 
 ct <- d_subset %>% 
@@ -68,7 +67,9 @@ ct <- ct %>%
       control_arm == "No" ~ "No",
       grepl("Allocation: Non-Randomized", Study_design) ~ "No",
       grepl("Allocation: Randomized", Study_design) ~ "Yes",
-      grepl("Allocation: N/A", Study_design) ~ NA_character_),
+      grepl("Allocation: N/A", Study_design) ~ NA_character_,
+      # manually reviewed some of these and they are non randomised
+      grepl("Sequential Assignment", Study_design) ~ "No"),
     # if randomisation missing, state unreported
     randomisation = case_when(
       is.na(randomisation) ~ NA_character_,
@@ -383,6 +384,99 @@ d_2 <- d_2 %>%
       randomisation == "Yes" ~ "Yes", 
       TRUE ~ control_arm)) 
 
+# Key words in titles -----
+# Search for any keywords in titles and study design that we dont' already have
+
+# Randomisation 
+non_random <- c("Non-randomized", "Randomized: No", "nonrandomized",
+                "Quasi-randomized")
+
+# terms that do mean random (don't use ignore case)
+random <- c("controlled-randomized",
+            "Randomised,Permuted block randomization",
+            "(?i)A randomised",
+            "Simple randomization",
+            "randomized, double-blind",
+            "Randomised,Simple randomization",
+            "Randomized clinical trial",
+            "Randomized controlled trial",
+            "a randomized, active-controlled",
+            "participants randomly allocated",
+            "randomized-controlled trial",
+            "Randomization will be stratified",
+            "randomized-controlled",
+            "(?i), Randomized",
+            "Randomized trial",
+            "^Randomized",
+            "Simple randomization",
+            "randomized-controlled",
+            ",Randomised",
+            "randomised- controlled",
+            "Phase 1 Randomized",
+            "(?i)a randomized",
+            "stratified-randomized",
+            "A random controlled",
+            "pilot randomized",
+            "Prospective, Randomised"
+            )
+
+d_2 <- d_2 %>%
+  mutate(randomisation = case_when(
+    !is.na(randomisation) ~ randomisation,
+    grepl(paste0(non_random, collapse = "|"),
+          Study_design) ~ "No",
+    grepl(paste0(non_random, collapse = "|"),
+          Public_title) ~ "No",
+    grepl(paste0(non_random, collapse = "|"),
+          Scientific_title) ~ "No",
+    grepl(paste0(random, collapse = "|"),
+          Study_design) ~ "Yes",
+    grepl(paste0(random, collapse = "|"),
+          Public_title) ~ "Yes",
+    grepl(paste0(random, collapse = "|"),
+          Scientific_title) ~ "Yes"))
+
+# Blinding 
+# not blind  ignore.case = T
+not_blind <- c("unmasked",
+               "Masking: None",
+               "Masking: Open",
+               "\\bopen"
+               )
+    
+# blind           ignore.case = T
+blind <- c("Masking: Blinded",
+           "Masking: Double",
+           "double-blind",
+           "single blind",
+           "single-blind",
+           "assessor-blind",
+           "A blinded nurse",
+           "double blind",
+           "triple blind",
+           ", blinded,",
+           ", Blind,",
+           "Masking: Single",
+           "partially blind",
+           "Observer-blind"
+           )
+
+d_2 <- d_2 %>% 
+  mutate(blinding = case_when(
+    !is.na(blinding) ~ blinding, 
+    grepl(paste0(not_blind, collapse = "|"), 
+          Study_design, ignore.case = T) ~ "No",
+    grepl(paste0(not_blind, collapse = "|"), 
+          Public_title, ignore.case = T) ~ "No",
+    grepl(paste0(not_blind, collapse = "|"), 
+          Scientific_title, ignore.case = T) ~ "No",
+    grepl(paste0(blind, collapse = "|"), 
+          Study_design, ignore.case = T) ~ "Yes",
+    grepl(paste0(blind, collapse = "|"), 
+          Public_title, ignore.case = T) ~ "Yes",
+    grepl(paste0(blind, collapse = "|"), 
+          Scientific_title, ignore.case = T) ~ "Yes"))
+
 d_2 <- d_2 %>% 
   mutate(
     subject_blind = ifelse(
@@ -396,26 +490,70 @@ d_2 <- d_2 %>%
     analyst_blind = ifelse(
       blinding == "No", "No", analyst_blind)) 
 
-# NEXT STEP HERE IS TO DO THE SEARCHING OF OTHER COLS WITH KEY WORDS
-# Only really want to do it on those that haven't already been assigned so use something like 
-# d %>% 
-#   mutate(
-#     randomisation = case_when(
-#       !is.na(randomisation) ~ randomisation,
-#       TRUE ~ "CHECK")) %>% 
-#   View
+d_2 <- d_2 %>% 
+  mutate(
+    blinding = ifelse(
+      is.na(blinding), "Unreported", blinding),
+    subject_blind = ifelse(
+      is.na(subject_blind), "Unreported", subject_blind),
+    investigator_blind = ifelse(
+      is.na(investigator_blind), "Unreported", investigator_blind),
+    outcome_blind = ifelse(
+      is.na(outcome_blind), "Unreported", outcome_blind),
+    analyst_blind = ifelse(
+      is.na(analyst_blind), "Unreported", analyst_blind)
+    ) 
 
-# IRCT20200907048644N1 has contradictory information (it says randomised but single arm)
-# need to define a heirarchy. Single arm should take precedent. This is the only one
+# Control arm
+control <- c("Parallel",
+             "\\bcontrolled",
+             "multi-arm",
+             "multi arm",
+             "two arm", 
+             "two-arm",
+             "three arm",
+             "three-arm",
+             "Factorial",
+             "Control: Placebo",
+             "Control: Active"
+             )
 
-# this trial is randomized based on title
-# TrialID == "JPRN-JapicCTI-194635" ~ "Yes"),
-# Look at how christiana did it with grep several columns
+non_control <- c("single-arm",
+                 "single arm",
+                 "uncontrolled", 
+                 "single group"
+                 )
+
+d_2 <- d_2 %>% 
+  mutate(control_arm = case_when(
+    !is.na(control_arm) ~ control_arm, 
+    grepl(paste0(non_control, collapse ="|"), Study_design,
+          ignore.case = T) ~ "No",
+    grepl(paste0(non_control, collapse ="|"), Public_title,
+          ignore.case = T) ~ "No",
+    grepl(paste0(non_control, collapse ="|"), Scientific_title,
+          ignore.case = T) ~ "No",
+    grepl(paste0(control, collapse ="|"), Study_design,
+          ignore.case = T) ~ "Yes",
+    grepl(paste0(control, collapse ="|"), Public_title,
+          ignore.case = T) ~ "Yes",
+    grepl(paste0(control, collapse ="|"), Scientific_title,
+          ignore.case = T) ~ "Yes")) 
+
+# Primary purpose 
+d_2 <- d_2 %>% 
+  mutate(primary_purpose = case_when(
+    !is.na(primary_purpose) ~ primary_purpose, 
+    grepl("prevention", Study_design) ~ "Prevention",
+    grepl("prevention", Public_title) ~ "Prevention",
+    grepl("prevention", Scientific_title) ~ "Prevention")) 
+
+rm(blind, control, non_control, non_random, not_blind, random)
 
 # 2. PHASE -----
 
 # then assign each of these to an option and use == to say which is which
-p1 <- unique(d$Phase)
+# p1 <- unique(d$Phase)
 
 # to develop this list I took all the unique phases across all datasets and
 # assigned each of them to a category. NA values are addressed later
@@ -470,11 +608,12 @@ phase4 = c("4", "Post Marketing Surveillance", "Phase 4",
            "Human pharmacology (Phase I): no\nTherapeutic exploratory (Phase II): no\nTherapeutic confirmatory - (Phase III): no\nTherapeutic use (Phase IV): yes\n")
 
 undefined = c("Bioequivalence", 
-              "Not applicable", "Other", "New Treatment Measure Clinical Study",
+              "Other", "New Treatment Measure Clinical Study",
               "Human pharmacology (Phase I): no                Therapeutic exploratory (Phase II): yes                Therapeutic confirmatory - (Phase III): no                Therapeutic use (Phase IV): yes",
               "Basic Science", "Pilot study" )
 
-unreported = c("Not selected", "NULL", "Not Specified", "N/A", "Not Applicable")
+unreported = c("Not selected", "NULL", "Not Specified", "N/A", 
+               "Not Applicable", "Not applicable")
 
 # number 33 of p is NA, need to deal with that separately 
 
@@ -489,15 +628,13 @@ d_2 <- d_2 %>%
       Phase %in% unreported ~ "Unreported",
       is.na(Phase) ~ "Unreported"))
 
-rm(p1, phase1, phase2, phase3, phase4, undefined, unreported)
+rm(phase1, phase2, phase3, phase4, undefined, unreported)
 
 # correct one described as P2/P4 which based on manual check is phase 2
 d_2[d_2$TrialID=="EUCTR2018-004305-11-GB", "phase_clean"] <- "Phase 2"
 
 # 3. SPONSOR TYPE -----
-sponsor <- d_2 %>% 
-  select(Primary_sponsor) %>% 
-  unique()
+
 
 not_ind <- c("universi",  # all ignore.case = T
               "pharmacy",
@@ -517,7 +654,8 @@ not_ind <- c("universi",  # all ignore.case = T
              "World Health Organization",
              "NYU Langone Health",
              "The Cleveland Clinic",
-             "Radboudumc"
+             "Radboudumc",
+             "Dr. Negrin University Hospital"
               )  
 
 industry <- c("pharma", # all ignore.case = T
@@ -562,10 +700,12 @@ industry <- c("pharma", # all ignore.case = T
               "AbbVie",
               "Novavax",
               "Novo Nordisk",
-              "shionogi"
+              "shionogi",
+              "Dr. Abidi pharmacutical Co.",
+              "Dr. Reddy’s Laboratories S.A."
               )
 
-investigator <- c("\\bMD\\b",
+investigator <- c("\\bMD\\b", # all ignore.case = T
                   "\\bphd",
                   "^dr\\b",
                   "prof"
@@ -600,7 +740,7 @@ d_2$sponsor_type[inv] <- "investigator"
 
 rm(ind, industry, inv, investigator, non_ind, not_ind, x)
 
-# x <- grep("S\\.A\\.", d_2$Primary_sponsor, ignore.case = T)
+# x <- grep("^dr\\b", d_2$Primary_sponsor, ignore.case = T)
 # d_2$Primary_sponsor[x]
 
 # d_2 %>%
@@ -903,6 +1043,8 @@ d_2[unreported,]$region_Asia <- "Unreported"
 d_2[unreported,]$region_Europe <- "Unreported"
 d_2[unreported,]$region_Oceania <- "Unreported"
 
+rm(continents, regions, regions_list)
+
 # 6. MULTI-CENTRE -----
 d_2$multicentre <- NA_character_
 
@@ -927,7 +1069,9 @@ d_2[grep("single-cent", d_2$Public_title, names(d_2), ignore.case = TRUE),]$mult
 
 d_2[grep("singlecent", d_2$Study_design, names(d_2), ignore.case = TRUE),]$multicentre <- "No"
 d_2[grep("single-cent", d_2$Study_design, names(d_2), ignore.case = TRUE),]$multicentre <- "No"
-table(d_2$multicentre, useNA = "ifany")
+# table(d_2$multicentre, useNA = "ifany")
+
+rm(countries_list)
 
 # 7. SAMPLE SIZE -----
 
@@ -1029,7 +1173,7 @@ d_save <- d_2 %>%
          vaccine, conventional, traditional, 
          # extras for checks
          Study_design, Day_inferred, Date_registration_format,
-         Phase, Public_title, Countries)
+         Phase, Public_title, Countries, Primary_sponsor)
 
 write_csv(d_save, "2021.07.01_check_JS.csv")
 
@@ -1109,4 +1253,14 @@ d_save %>%
 #          Source_registry != "RPCEC",
 #          Source_registry != "TCTR") %>% 
 #   nrow()
+
+# sequential assignment = non-randomised? (where randomsisation not already assigned)
+# "NCT04162340"  Yes
+# "NCT03844217"  Yes
+# "NCT04187404"  yes
+# "NCT04101643"  yes
+# "NCT03908814" Yes
+# "NCT03884465"
+# "NCT04169711"
+# "NCT04622826"
 
