@@ -25,7 +25,15 @@ d <- rename(d, study_arm = id)
 
 # 1. TRIAL DESIGN -----
 
-# these are the outputs we need:
+# this section splits the data into the different registries and then tries to
+# extract info from the "Study_design" column from the ICTRP export. Then the
+# data are combined and we try to get any extra data from the titles and
+# remaining Study_design that weren't yet captured
+
+# Note that not all source registries have a split effort to extract the data.
+# We didn't do it for ones with very few entries.
+
+# these are the outputs we aim for:
 # Use of control arm # if randomised, there was a control arm
 # Randomisation  # if single arm, not randomised
 # Blinding
@@ -86,7 +94,7 @@ ct <- ct %>%
     # we can assume analyst not blinded
     analyst_blind = "No",
     # all have blinding reported so we know blinded if not stated that open label
-    blinding = ifelse(grepl("None \\(Open Label\\)", Study_design),
+    blinding = ifelse(grepl("None \\(Open Label\\)|Masking: Open Label", Study_design),
                       "No", "Yes"),
     primary_purpose = case_when(
       grepl("Primary purpose: Treatment", Study_design, 
@@ -118,7 +126,7 @@ eu <- eu %>%
     # all meet these
     blinding = case_when(
       grepl("blind: yes", Study_design) ~ "Yes", 
-      grepl("blind: no", Study_design) ~ "No", 
+      grepl("Open: yes", Study_design) ~ "No", 
       grepl("blind:<br>", Study_design) ~ NA_character_),
     # who specifically is blinded is not stated
     # many say double or single but not who 
@@ -208,7 +216,7 @@ chictr <- chictr %>%
       grepl("Single arm", Study_design) ~ "No"),
     randomisation = case_when(
       control_arm == "No" ~ "No",
-      grepl("Non randomized", Study_design) ~ "No",
+      grepl("Non randomized|Quasi-randomized", Study_design) ~ "No",
       grepl("Randomized", 
             Study_design, ignore.case = T) ~ "Yes"),
     blinding = NA,
@@ -441,18 +449,21 @@ d_2 <- d_2 %>%
 not_blind <- c("unmasked",
                "Masking: None",
                "Masking: Open",
-               "\\bopen"
+               "open label",
+               "open-label"
                )
     
 # blind           ignore.case = T
 blind <- c("Masking: Blinded",
            "Masking: Double",
-           "double-blind",
-           "single blind",
+           "double-blind", 
+           # note that double blind and single blind are mentioned in all the
+           # EUCTR study_designs. Addressed below
+           "single blind", 
            "single-blind",
+           "double blind",
            "assessor-blind",
            "A blinded nurse",
-           "double blind",
            "triple blind",
            ", blinded,",
            ", Blind,",
@@ -471,11 +482,21 @@ d_2 <- d_2 %>%
     grepl(paste0(not_blind, collapse = "|"), 
           Scientific_title, ignore.case = T) ~ "No",
     grepl(paste0(blind, collapse = "|"), 
-          Study_design, ignore.case = T) ~ "Yes",
-    grepl(paste0(blind, collapse = "|"), 
           Public_title, ignore.case = T) ~ "Yes",
     grepl(paste0(blind, collapse = "|"), 
           Scientific_title, ignore.case = T) ~ "Yes"))
+
+# because all EUCTR trials state double blind and single blind we don't do the
+# study design search for them
+d_2 <- d_2 %>% 
+  mutate(blinding = case_when(
+    Source_registry == "EUCTR" ~ blinding, 
+    !is.na(blinding) ~ blinding,
+    grepl(paste0(blind, collapse = "|"), 
+          Study_design, ignore.case = T) ~ "Yes")) 
+
+# fix a specific trial that says both open and blinded (seems more blinded)
+d_2[d_2$TrialID == "JPRN-JapicCTI-194971",]$blinding <- "Yes"
 
 d_2 <- d_2 %>% 
   mutate(
@@ -541,14 +562,44 @@ d_2 <- d_2 %>%
           ignore.case = T) ~ "Yes")) 
 
 # Primary purpose 
-d_2 <- d_2 %>% 
-  mutate(primary_purpose = case_when(
-    !is.na(primary_purpose) ~ primary_purpose, 
-    grepl("prevention", Study_design) ~ "Prevention",
-    grepl("prevention", Public_title) ~ "Prevention",
-    grepl("prevention", Scientific_title) ~ "Prevention")) 
 
-rm(blind, control, non_control, non_random, not_blind, random)
+# identify those matching the terms across the columns which have missing
+# entries for primary purpose (don't want to override them as they shoudl be
+# more reliable)
+prev <- which(is.na(d_2$primary_purpose) &
+                (grepl("prevent|prophyla", d_2$Study_design, ignore.case = T)|
+                grepl("prevent|prophyla", d_2$Public_title, ignore.case = T)|
+                grepl("prevent|prophyla", d_2$Scientific_title, ignore.case = T)))
+
+# all of the EUCTR trials say treatment in study_design so we can't search them
+treat <- which(is.na(d_2$primary_purpose) & d_2$Source_registry != "EUCTR" &
+                 (grepl("treatment", d_2$Study_design, ignore.case = T)|
+                grepl("treatment", d_2$Public_title, ignore.case = T)|
+                grepl("treatment", d_2$Scientific_title, ignore.case = T)))
+
+treat2 <- which(is.na(d_2$primary_purpose) & d_2$Source_registry == "EUCTR" &
+        (grepl("treatment", d_2$Public_title, ignore.case = T)|
+           grepl("treatment", d_2$Scientific_title, ignore.case = T)))
+
+treat <- c(treat, treat2)
+
+# find those returned by both searches so they will be manually reviewed later
+x <- c(prev, treat)
+duplicates <- x[duplicated(x) | duplicated(x, fromLast = TRUE)]
+
+d_2$primary_purpose[prev] <- "Prevention"
+d_2$primary_purpose[treat] <- "Treatment"
+d_2$primary_purpose[duplicates] <- NA
+
+# get a few specific ones that are clearly labelled but also said one of the
+# other terms (this happens because we didn't do DRKS as it's own group above)
+prev <- grep("Study design purpose: Prevention", d_2$Study_design)
+d_2$primary_purpose[prev] <- "Prevention"
+d_2$primary_purpose[grep("Study design purpose: Diagnostic", d_2$Study_design)] <- 
+  "Other"
+
+rm(blind, control, non_control, non_random, not_blind, random, prev,
+   treat, x, duplicates)
 
 # 2. PHASE -----
 
@@ -801,7 +852,14 @@ pros[pros == 0] <- "No"
 pros[pros == 1] <- "Yes"
 d_2[d_2$Day_inferred == T, ]$prospective <- as.character(pros)
 
-rm(pros, dates_inf, reg_m_y)
+# where the trial was registered on the first day of the month, we know that
+# enrollment date was equal to or after it, so they are prospective even if
+# enrollment day was inferred
+x <- d_2$Day_inferred == T &
+  d_2$Date_registration_format == d_2$Date_enrollment_format
+d_2[x, ]$prospective <- "Yes"
+
+rm(pros, dates_inf, reg_m_y, x)
 
 # 5. GEOGRAPHIC REGION -----
 
