@@ -115,7 +115,7 @@ eu <- eu %>%
   mutate(
     # all meet these conditions
     control_arm = case_when(
-      grepl("Controlled: yes", Study_design) ~ "Yes",
+      grepl("Controlled: yes|Parallel group: yes", Study_design) ~ "Yes",
       grepl("Controlled: no", Study_design) ~ "No"),
     # all meet these
     randomisation = case_when(
@@ -207,13 +207,13 @@ jprn <- jprn %>%
 chictr <- d_subset %>% 
   filter(Source_registry == "ChiCTR") 
 
-control <- "Parallel|Cross-over|Quasi-randomized controlled|Randomized parallel controlled trial|Factorial|Non randomized control"
+control <- "Parallel|Cross-over|Quasi-randomized controlled|Randomized parallel controlled trial|Factorial|Non randomized control|Dose comparison|Case-Control study"
 
 chictr <- chictr %>% 
   mutate(
     control_arm = case_when(
       grepl(control, Study_design) ~ "Yes",
-      grepl("Single arm", Study_design) ~ "No"),
+      grepl("Single arm|Sequential", Study_design) ~ "No"),
     randomisation = case_when(
       control_arm == "No" ~ "No",
       grepl("Non randomized|Quasi-randomized", Study_design) ~ "No",
@@ -393,7 +393,10 @@ d_2 <- d_2 %>%
       TRUE ~ control_arm)) 
 
 # Key words in titles -----
-# Search for any keywords in titles and study design that we dont' already have
+
+# Search for any keywords in titles and study design that we dont' already have.
+# note that these are only checked in the context of the above processing
+# already being done
 
 # Randomisation 
 non_random <- c("Non-randomized", "Randomized: No", "nonrandomized",
@@ -450,7 +453,11 @@ not_blind <- c("unmasked",
                "Masking: None",
                "Masking: Open",
                "open label",
-               "open-label"
+               "open-label",
+               ", open,",
+               " open,",
+               ", open",
+               "open clinical trial"
                )
     
 # blind           ignore.case = T
@@ -469,7 +476,12 @@ blind <- c("Masking: Blinded",
            ", Blind,",
            "Masking: Single",
            "partially blind",
-           "Observer-blind"
+           "Observer-blind",
+           "Observer Blind",
+           "partially-blinded",
+           "partly blinded",
+           "opaque envelopes",
+           "double-bind" # one mispelt
            )
 
 d_2 <- d_2 %>% 
@@ -536,13 +548,15 @@ control <- c("Parallel",
              "three-arm",
              "Factorial",
              "Control: Placebo",
-             "Control: Active"
+             "Control: Active",
+             "randomized control trial"
              )
 
 non_control <- c("single-arm",
                  "single arm",
                  "uncontrolled", 
-                 "single group"
+                 "single group",
+                 "Control: Historical"
                  )
 
 d_2 <- d_2 %>% 
@@ -600,6 +614,27 @@ d_2$primary_purpose[grep("Study design purpose: Diagnostic", d_2$Study_design)] 
 
 rm(blind, control, non_control, non_random, not_blind, random, prev,
    treat, x, duplicates)
+
+d_2 <- d_2 %>% 
+  mutate(
+    randomisation = case_when(
+      control_arm == "No" ~ "No", 
+      TRUE ~ randomisation),
+    control_arm = case_when(
+      randomisation == "Yes" ~ "Yes", 
+      TRUE ~ control_arm)) 
+
+# Individual fixes -----
+
+# e.g. some trials with contradictory info
+d_2[d_2$TrialID == "ChiCTR-IIC-16008366", ]$control_arm <- "No"
+d_2[d_2$TrialID == "ChiCTR2000030810", ]$control_arm <- "Yes"
+d_2[d_2$TrialID == "EUCTR2016-003433-20-FR", ]$control_arm <- "Yes"
+d_2[d_2$TrialID == "JPRN-jRCTs041190009", ]$blinding <- "Yes"
+
+d_2[d_2$TrialID == "EUCTR2020-001747-21-PT", ]$randomisation <- "Yes"
+d_2[d_2$TrialID == "NL8633", ]$randomisation <- "Yes"
+d_2[d_2$TrialID == "NL8547", ]$randomisation <- "Yes"
 
 # 2. PHASE -----
 
@@ -686,7 +721,6 @@ d_2[d_2$TrialID=="EUCTR2018-004305-11-GB", "phase_clean"] <- "Phase 2"
 
 # 3. SPONSOR TYPE -----
 
-
 not_ind <- c("universi",  # all ignore.case = T
               "pharmacy",
               "department",
@@ -706,7 +740,9 @@ not_ind <- c("universi",  # all ignore.case = T
              "NYU Langone Health",
              "The Cleveland Clinic",
              "Radboudumc",
-             "Dr. Negrin University Hospital"
+             "Dr. Negrin University Hospital",
+             "NHS",
+             "fundaci"
               )  
 
 industry <- c("pharma", # all ignore.case = T
@@ -762,7 +798,6 @@ investigator <- c("\\bMD\\b", # all ignore.case = T
                   "prof"
                   )
 
-
 non_ind <- grep(
   paste0(not_ind, collapse = "|"),
   d_2$Primary_sponsor, ignore.case = T)
@@ -790,6 +825,31 @@ d_2$sponsor_type[ind] <- "industry"
 d_2$sponsor_type[inv] <- "investigator"
 
 rm(ind, industry, inv, investigator, non_ind, not_ind, x)
+
+# now assign some specifics that were removed as duplicates
+industry <- c("Dr. Reddy", "Dr. Abidi pharmacutical Co.",
+         "EMD Serono Research & Development Institute, Inc.",
+         "Perseverance Research Center, LLC",
+         "Instituto Grifols")
+
+ind <- grep(paste0(industry, collapse = "|"), 
+     d_2$Primary_sponsor, ignore.case = T)
+
+not_ind <- c("The First Affiliated Hospital of Guangdong Pharmaceutical University",
+             "Islamic Azad University",
+             "University of Saskatchewan",
+             "Dr. Negrin University Hospital",
+             "KK Women's and Children's Hospital",
+             "Chiang Mai University",
+             "Riyadh Colleges of Dentistry and Pharmacy")
+
+non_ind <- grep(paste0(not_ind, collapse = "|"), 
+                d_2$Primary_sponsor, ignore.case = T)
+
+d_2$sponsor_type[non_ind] <- "non_industry"
+d_2$sponsor_type[ind] <- "industry"
+
+rm(industry, ind, not_ind, non_ind)
 
 # x <- grep("^dr\\b", d_2$Primary_sponsor, ignore.case = T)
 # d_2$Primary_sponsor[x]
