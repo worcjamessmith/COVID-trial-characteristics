@@ -68,9 +68,9 @@ ct <- ct %>%
   mutate(
     # "Sequential Assignment" is variable in meaning so we don't assign that
     # here
-    control_arm = case_when(grepl(
-      "Single Group", Study_design) ~ "No",
-      grepl("Allocation: Randomized|Parallel|Crossover|Factorial", Study_design) ~ "Yes"),
+    control_arm = case_when(
+      grepl("Allocation: Randomized|Parallel|Crossover|Factorial", Study_design) ~ "Yes",
+      grepl("Single Group", Study_design) ~ "No"),
     randomisation = case_when(
       control_arm == "No" ~ "No",
       grepl("Allocation: Non-Randomized", Study_design) ~ "No",
@@ -145,14 +145,14 @@ irct <- d_subset %>%
 
 irct <- irct %>% 
   mutate(
-    control_arm = case_when(
-      grepl("Assignment: Parallel|Assignment: Crossover", 
-            Study_design) ~ "Yes",
-      grepl("Assignment: Single", Study_design) ~ "No"),
     randomisation = case_when(
       grepl("Randomization: Not randomized", Study_design) ~ "No",
       grepl("Randomization: Randomized", Study_design) ~ "Yes",
       grepl("Randomization: N/A", Study_design) ~ NA_character_),
+    control_arm = case_when(
+      grepl("Assignment: Parallel|Assignment: Crossover", 
+            Study_design) ~ "Yes",
+      grepl("Assignment: Single", Study_design) ~ "No"),
     blinding = case_when(
       grepl("Blinding: Single blinded|Blinding: Double blinded|Blinding: Triple blinded",
             Study_design) ~ "Yes",
@@ -199,8 +199,11 @@ jprn <- jprn %>%
       grepl("observer-blind|evaluator-blind", 
             Study_design, ignore.case = T) ~ "Yes"),
     analyst_blind = NA,
-    primary_purpose = NA)
-
+    primary_purpose = case_when(
+      grepl("prevention purpose", Study_design, 
+            ignore.case = T) ~ "Prevention",
+      grepl("treatment purpose", Study_design, 
+            ignore.case = T) ~ "Treatment"))
 
 # chictr -----
 
@@ -626,15 +629,27 @@ d_2 <- d_2 %>%
 
 # Individual fixes -----
 
-# e.g. some trials with contradictory info
+# e.g. some trials with e.g. contradictory info
+
 d_2[d_2$TrialID == "ChiCTR-IIC-16008366", ]$control_arm <- "No"
 d_2[d_2$TrialID == "ChiCTR2000030810", ]$control_arm <- "Yes"
 d_2[d_2$TrialID == "EUCTR2016-003433-20-FR", ]$control_arm <- "Yes"
+d_2[d_2$TrialID == "NCT04273321", ]$control_arm <- "No"
+d_2[d_2$TrialID == "NCT04419623", ]$control_arm <- "No"
+d_2[d_2$TrialID == "IRCT20200907048644N1", ]$control_arm <- "Yes"
+
 d_2[d_2$TrialID == "JPRN-jRCTs041190009", ]$blinding <- "Yes"
 
 d_2[d_2$TrialID == "EUCTR2020-001747-21-PT", ]$randomisation <- "Yes"
 d_2[d_2$TrialID == "NL8633", ]$randomisation <- "Yes"
 d_2[d_2$TrialID == "NL8547", ]$randomisation <- "Yes"
+d_2[d_2$TrialID == "IRCT20180921041079N1", ]$randomisation <- "Yes"
+d_2[d_2$TrialID == "IRCT20200907048644N1", ]$randomisation <- "Yes"
+d_2[d_2$TrialID == "ChiCTR-IIC-16008366", ]$randomisation <- "No"
+
+d_2[d_2$TrialID == "PACTR201905466349317", ]$primary_purpose <- "Prevention"
+d_2[d_2$TrialID == "PACTR202007720062393", ]$primary_purpose <- "Not Assessed"
+d_2[d_2$TrialID == "JPRN-jRCTs031190015", ]$primary_purpose <- "Other"
 
 # 2. PHASE -----
 
@@ -826,11 +841,13 @@ d_2$sponsor_type[inv] <- "investigator"
 
 rm(ind, industry, inv, investigator, non_ind, not_ind, x)
 
-# now assign some specifics that were removed as duplicates
+# now assign some specifics that were removed as duplicates or that 
+# we know should be in one category 
 industry <- c("Dr. Reddy", "Dr. Abidi pharmacutical Co.",
          "EMD Serono Research & Development Institute, Inc.",
          "Perseverance Research Center, LLC",
-         "Instituto Grifols")
+         "Instituto Grifols",
+         "Laboratorios Sophia S.A de C.V.")
 
 ind <- grep(paste0(industry, collapse = "|"), 
      d_2$Primary_sponsor, ignore.case = T)
@@ -841,7 +858,12 @@ not_ind <- c("The First Affiliated Hospital of Guangdong Pharmaceutical Universi
              "Dr. Negrin University Hospital",
              "KK Women's and Children's Hospital",
              "Chiang Mai University",
-             "Riyadh Colleges of Dentistry and Pharmacy")
+             "Riyadh Colleges of Dentistry and Pharmacy",
+             "parul ayurved pharmacy",
+             "Almaa Siddha Multispeciality Hospital Pvt Ltd",
+             "Ottawa Heart Institute Research Corporation",
+             "degli Studi di Sassari",
+             "del Hospital Universitario de Bellvitge")
 
 non_ind <- grep(paste0(not_ind, collapse = "|"), 
                 d_2$Primary_sponsor, ignore.case = T)
