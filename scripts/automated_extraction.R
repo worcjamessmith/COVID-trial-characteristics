@@ -646,6 +646,7 @@ d_2[d_2$TrialID == "NL8547", ]$randomisation <- "Yes"
 d_2[d_2$TrialID == "IRCT20180921041079N1", ]$randomisation <- "Yes"
 d_2[d_2$TrialID == "IRCT20200907048644N1", ]$randomisation <- "Yes"
 d_2[d_2$TrialID == "ChiCTR-IIC-16008366", ]$randomisation <- "No"
+d_2[d_2$TrialID == "NCT03839134", ]$randomisation <- "Yes"
 
 d_2[d_2$TrialID == "PACTR201905466349317", ]$primary_purpose <- "Prevention"
 d_2[d_2$TrialID == "PACTR202007720062393", ]$primary_purpose <- "Not Assessed"
@@ -1303,104 +1304,23 @@ d_2 <- d_2 %>%
     
 # Make dataset -----
 
+d_2[is.na(d_2$Bridging_flag), ]$Bridging_flag <- "FALSE"
+
 d_save <- d_2 %>% 
-  select(TrialID, url, Scientific_title, Conditions, Date_enrollment_format,
+  select(study_arm, TrialID, url, Scientific_title, Conditions, Date_enrollment_format,
          control_arm, randomisation, blinding, subject_blind, 
          caregiver_blind, investigator_blind, outcome_blind, analyst_blind,
          prospective, Source_registry, phase_clean, 
          region_Africa:region_Oceania, 
          multicentre, primary_purpose, sponsor_type, sample_size,
-         vaccine, conventional, traditional, 
+         vaccine, conventional, traditional, Bridging_flag,
          # extras for checks
          Study_design, Day_inferred, Date_registration_format,
          Phase, Public_title, Countries, Primary_sponsor)
 
 write_csv(d_save, "2021.07.01_check_JS.csv")
 
-
-d_save %>% 
-  select(control_arm:traditional) %>% 
-  lapply(function(x) table(x, useNA = "a"))
+source("scripts/working.R")
 
 
-# Bridging flag -----
-# table(d$Bridging_flag, useNA = "a")
-# count(d, Bridging_flag) %>% 
-#   View() # 326 need review
-
-# Notes -----
-
-# count NAs
-# x <- lapply(d_2, is.na)
-# 
-# sapply(x, sum)
-
-
-# d_2 %>%
-#   filter(study_arm == "main") %>%
-#   count(prospective)
-
-# single centre less common term than multi
-# 
-# 234 yes for multi-centre
-
-
-# ictrp <- bind_rows(main, im)
-# 
-# ictrp <- ictrp %>% 
-#   filter(Source_registry != "CT.gov", 
-#          Source_registry != "EUCTR", 
-#          Source_registry != "IRCT")
-# 
-# unique(ictrp$Study_design)
-# d <- d %>% 
-#   group_by(Source_registry) %>% 
-#   filter(n() >=50) 
-# table(d$Source_registry)
-# 
-# unique(design$allocation)
-# anyNA(design$allocation)
-# unique(design$intervention_model)
-# anyNA(design$intervention_model)
-# # sequential - is this controlled? 
-#   # NCT03801915 = Yes
-#   # NCT04162340 = No 
-#   # NCT04061590 = Yes
-#   # NCT03895879 = Yes
-#   # NCT03844217 = No
-#   # NCT04082325 = Yes
-#   # NCT04104672 = Yes
-#   # NCT04185090 = Yes
-#   # NCT04187404 = No
-# # looks like this needs to be manual
-# unique(design$masking)
-# anyNA(design$masking)
-# unique(design$primary_purpose_ct)
-# anyNA(design$primary_purpose_ct)
-# 
-# x <- lapply(all, is.na)
-# # seems that the problem is coming from the NAs?
-# lapply(x, sum)
-# 
-# # check correct length
-# d %>% 
-#   filter(Source_registry != "DRKS",
-#          Source_registry != "LBCTR",
-#          Source_registry != "NTR",
-#          Source_registry != "PACTR",
-#          Source_registry != "PER",
-#          Source_registry != "RBR",
-#          Source_registry != "RPCEC",
-#          Source_registry != "TCTR") %>% 
-#   nrow()
-
-# sequential assignment = non-randomised? (where randomsisation not already assigned)
-# "NCT04162340"  Yes
-# "NCT03844217"  Yes
-# "NCT04187404"  yes
-# "NCT04101643"  yes
-# "NCT03908814" Yes
-# "NCT03884465"
-# "NCT04169711"
-# "NCT04622826"
 
