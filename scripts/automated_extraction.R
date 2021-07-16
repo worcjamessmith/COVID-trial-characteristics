@@ -1299,7 +1299,11 @@ d_2 <- d_2 %>%
       paste0(traditional, collapse = "|"),
       Interventions,
       ignore.case = T
-    ), "Yes", NA)
+    ), "Yes", NA),
+    traditional = ifelse(grepl(
+      "traditional hepatoprotective", 
+      Interventions), 
+      NA, traditional)
   ) 
     
 # Make dataset -----
@@ -1316,11 +1320,11 @@ d_save <- d_2 %>%
          vaccine, conventional, traditional, Bridging_flag,
          # extras for checks
          Study_design, Day_inferred, Date_registration_format,
-         Phase, Public_title, Countries, Primary_sponsor)
+         Phase, Public_title, Countries, Primary_sponsor, Interventions)
 
 write_csv(d_save, "2021.07.01_check_JS.csv")
 
-source("scripts/working.R")
+# source("scripts/working.R")
 
 
 
