@@ -2,15 +2,21 @@
 
 
 # Inputs -----
-# add
+input_path <- "data/manual_processing/eligibility_screen/eligible_trials/"
+output_path <- "data/automated_extraction/"
+
+# Create folder -----
+if(!dir.exists(output_path)){
+  dir.create(output_path)
+} 
 
 # Load -----
 require(tidyverse)
 
 # Read data -----
-main <- read_csv("data/manual_processing/eligibility_screen/eligible_trials/ictrp_main847.csv")
-im <- read_csv("data/manual_processing/eligibility_screen/eligible_trials/ictrp_im847.csv")
-covid <- read_csv("data/manual_processing/eligibility_screen/eligible_trials/covid847.csv")
+main <- read_csv(paste0(input_path, "ictrp_main847.csv"))
+im <- read_csv(paste0(input_path, "ictrp_im847.csv"))
+covid <- read_csv(paste0(input_path, "covid847.csv"))
 continents <- read.csv("data/initial_import/supplementary/UNSD — Methodology.csv")
 
 # Combine datasets -----
@@ -1322,7 +1328,7 @@ d_save <- d_2 %>%
          Study_design, Day_inferred, Date_registration_format,
          Phase, Public_title, Countries, Primary_sponsor, Interventions)
 
-write_csv(d_save, "2021.07.01_check_JS.csv")
+write_csv(d_save, paste0(output_path, "automated_extraction.csv"))
 
 # source("scripts/working.R")
 
