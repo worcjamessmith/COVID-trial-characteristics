@@ -1,5 +1,18 @@
-# Aspects of this script were written by Christiana Kartsonaki
+# Extract data
 
+# This script extracts the relevant data from the ICTRP exports where possible.
+# It was compared against an effort to do the same in Python and discrepancies
+# were resolved until the scripts agreed. 
+
+# It is worth noting that the script may not be robust if used for other
+# datasets, as much of it was developed interactively by checking how suitable
+# each approach was for the particular data at hand. If reusing it would be
+# essential to check the reliability of the code.
+
+# One output is produced: automated_extraction.csv.
+
+# Aspects of this script were written by Christiana Kartsonaki: geographic
+# region, multi-centre, and sample size.
 
 # Inputs -----
 input_path <- "data/manual_processing/eligibility_screen/eligible_trials/"
