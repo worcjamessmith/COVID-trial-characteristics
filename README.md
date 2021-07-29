@@ -42,6 +42,16 @@ The files with consensus decisions are in `...intermediate/screened` (suffix `_c
     
 The random samples for manual extraction are in: `data/manual_processing/manual_extraction/random_sample/`.
 The lists of eligible trials, including the subsets of 847 trials, are in `data/manual_processing/eligibility_screen/eligible_trials/`.
+
+5. `automated_extraction.R`
+
+  * takes the dataset of eligible trials and automatically extracts variables that are needed for analysis where possible. The resulting dataset is in `data/automated_extraction/automated_extraction.csv`.
+  
+6. `compare_manual.R`
+
+  * compares the results of the automated extraction to the subset of 15% trials done manually. 
+  Differences in between the datasets are stored in .csv files in `data/automated_extraction/compare_to_manual/` for reference, with each csv named for the variable whose differences are shown in the file.
+  
   
 # Dependency management
 The project uses [`renv`](https://rstudio.github.io/renv/articles/renv.html). Use `renv::restore()` to download the correct package versions and ensure computational reproducibility. 
