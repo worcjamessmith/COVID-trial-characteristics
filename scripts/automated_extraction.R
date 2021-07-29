@@ -545,19 +545,19 @@ d_2 <- d_2 %>%
     analyst_blind = ifelse(
       blinding == "No", "No", analyst_blind)) 
 
-d_2 <- d_2 %>% 
-  mutate(
-    blinding = ifelse(
-      is.na(blinding), "Unreported", blinding),
-    subject_blind = ifelse(
-      is.na(subject_blind), "Unreported", subject_blind),
-    investigator_blind = ifelse(
-      is.na(investigator_blind), "Unreported", investigator_blind),
-    outcome_blind = ifelse(
-      is.na(outcome_blind), "Unreported", outcome_blind),
-    analyst_blind = ifelse(
-      is.na(analyst_blind), "Unreported", analyst_blind)
-    ) 
+# d_2 <- d_2 %>% 
+#   mutate(
+#     blinding = ifelse(
+#       is.na(blinding), "Unreported", blinding),
+#     subject_blind = ifelse(
+#       is.na(subject_blind), "Unreported", subject_blind),
+#     investigator_blind = ifelse(
+#       is.na(investigator_blind), "Unreported", investigator_blind),
+#     outcome_blind = ifelse(
+#       is.na(outcome_blind), "Unreported", outcome_blind),
+#     analyst_blind = ifelse(
+#       is.na(analyst_blind), "Unreported", analyst_blind)
+#     ) 
 
 # Control arm
 control <- c("Parallel",
@@ -635,12 +635,12 @@ d_2$primary_purpose[grep("Study design purpose: Diagnostic", d_2$Study_design)] 
   "Other"
 
 rm(blind, control, non_control, non_random, not_blind, random, prev,
-   treat, x, duplicates)
+   treat, x, duplicates, treat2)
 
 d_2 <- d_2 %>% 
   mutate(
     randomisation = case_when(
-      control_arm == "No" ~ "No", 
+      control_arm == "No" ~ "Not applicable", 
       TRUE ~ randomisation),
     control_arm = case_when(
       randomisation == "Yes" ~ "Yes", 
@@ -656,6 +656,8 @@ d_2[d_2$TrialID == "EUCTR2016-003433-20-FR", ]$control_arm <- "Yes"
 d_2[d_2$TrialID == "NCT04273321", ]$control_arm <- "No"
 d_2[d_2$TrialID == "NCT04419623", ]$control_arm <- "No"
 d_2[d_2$TrialID == "IRCT20200907048644N1", ]$control_arm <- "Yes"
+d_2[d_2$TrialID == "NCT04273321", ]$control_arm <- "Yes"
+d_2[d_2$TrialID == "NCT03884465", ]$control_arm <- "Yes"
 
 d_2[d_2$TrialID == "JPRN-jRCTs041190009", ]$blinding <- "Yes"
 
@@ -666,9 +668,10 @@ d_2[d_2$TrialID == "IRCT20180921041079N1", ]$randomisation <- "Yes"
 d_2[d_2$TrialID == "IRCT20200907048644N1", ]$randomisation <- "Yes"
 d_2[d_2$TrialID == "ChiCTR-IIC-16008366", ]$randomisation <- "No"
 d_2[d_2$TrialID == "NCT03839134", ]$randomisation <- "Yes"
+d_2[d_2$TrialID == "NCT04419623", ]$randomisation <- "No"
 
 d_2[d_2$TrialID == "PACTR201905466349317", ]$primary_purpose <- "Prevention"
-d_2[d_2$TrialID == "PACTR202007720062393", ]$primary_purpose <- "Not Assessed"
+d_2[d_2$TrialID == "PACTR202007720062393", ]$primary_purpose <- NA_character_
 d_2[d_2$TrialID == "JPRN-jRCTs031190015", ]$primary_purpose <- "Other"
 
 # 2. PHASE -----
@@ -731,12 +734,11 @@ phase4 = c("4", "Post Marketing Surveillance", "Phase 4",
 undefined = c("Bioequivalence", 
               "Other", "New Treatment Measure Clinical Study",
               "Human pharmacology (Phase I): no                Therapeutic exploratory (Phase II): yes                Therapeutic confirmatory - (Phase III): no                Therapeutic use (Phase IV): yes",
-              "Basic Science", "Pilot study" )
+              "Basic Science", "Pilot study", 
+              "N/A", 
+              "Not Applicable", "Not applicable")
 
-unreported = c("Not selected", "NULL", "Not Specified", "N/A", 
-               "Not Applicable", "Not applicable")
-
-# number 33 of p is NA, need to deal with that separately 
+unreported = c("Not selected", "NULL", "Not Specified")
 
 d_2 <- d_2 %>%
   mutate(
@@ -750,6 +752,11 @@ d_2 <- d_2 %>%
       is.na(Phase) ~ "Unreported"))
 
 rm(phase1, phase2, phase3, phase4, undefined, unreported)
+
+# manual comparison indicated that JPRN N/A can be unreported rather than
+# undefined
+d_2[which(d_2$Source_registry == "JPRN" & d_2$Phase == "N/A"),]$phase_clean <- 
+  "Unreported"
 
 # correct one described as P2/P4 which based on manual check is phase 2
 d_2[d_2$TrialID=="EUCTR2018-004305-11-GB", "phase_clean"] <- "Phase 2"
@@ -962,6 +969,16 @@ x <- d_2$Day_inferred == T &
 d_2[x, ]$prospective <- "Yes"
 
 rm(pros, dates_inf, reg_m_y, x)
+
+# some individual fixes
+d_2[d_2$TrialID == "PACTR201905466349317", ]$Date_enrollment_format <- 
+  as.Date("2019/03/18")
+d_2[d_2$TrialID == "PACTR201902478249291", ]$Date_enrollment_format <- 
+  as.Date("2017/10/15")
+d_2[d_2$TrialID == "PACTR202006760881890", ]$Date_enrollment_format <- 
+  as.Date("2020/09/14")
+d_2[d_2$TrialID == "PACTR202009786901147", ]$Date_enrollment_format <- 
+  as.Date("2021/02/04")
 
 # 5. GEOGRAPHIC REGION -----
 
@@ -1203,7 +1220,17 @@ d_2[unreported,]$region_Asia <- "Unreported"
 d_2[unreported,]$region_Europe <- "Unreported"
 d_2[unreported,]$region_Oceania <- "Unreported"
 
-rm(continents, regions, regions_list)
+# comparison to manual extraction showed that ct.gov trials with NULL country do
+# report country elsewhere
+missing <- which(d_2$Countries == "NULL" & d_2$Source_registry == "CT.gov")
+d_2[missing,]$region_Africa <- NA_character_
+d_2[missing,]$region_N_America <- NA_character_
+d_2[missing,]$region_L_America <- NA_character_
+d_2[missing,]$region_Asia <- NA_character_
+d_2[missing,]$region_Europe <- NA_character_
+d_2[missing,]$region_Oceania <- NA_character_
+                 
+rm(continents, regions, regions_list, missing, unreported)
 
 # 6. MULTI-CENTRE -----
 d_2$multicentre <- NA_character_
@@ -1324,7 +1351,9 @@ d_2 <- d_2 %>%
       Interventions), 
       NA, traditional)
   ) 
-    
+  
+rm(conventional, traditional, vaccine)
+
 # Make dataset -----
 
 d_2[is.na(d_2$Bridging_flag), ]$Bridging_flag <- "FALSE"
