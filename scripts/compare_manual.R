@@ -4,6 +4,11 @@
 # Any differences between manual and automated are stored in
 # "data/automated_extraction/compare_to_manual/" for reference.
 
+# Datasets for manual extraction (i.e. where automated extraction has left "NA")
+# are then generated. "Manual_extraction_all_2.csv" is the subset of data that have
+# already been manually extracted once as part of the 15% check.
+
+
 # Inputs -----
 output_path <- "data/manual_processing/manual_extraction/"
 output_path_difs <- "data/automated_extraction/compare_to_manual/"
@@ -289,7 +294,8 @@ difs <-
 
 write_csv(difs, paste0(output_path_difs, "multicentre.csv"))
 
-# Sponsors for manual extraction -----
+# MANUAL EXTRACTION DATASETS -----
+# Sponsors -----
 x <- is.na(d_all$sponsor_type)
 
 sponsor <- d_all %>% 
@@ -298,37 +304,99 @@ sponsor <- d_all %>%
 
 write_csv(sponsor, paste0(output_path, "sponsor.csv"))
 
-table(d_all$sponsor_type, useNA = "a")
+# Duplicate 15% sample -----
+# Make dataset to double extract anything needed from the manual extraction 
+
+stopifnot(all.equal(d_sub$TrialID, d_man$TrialID))
+
+# we are going to rely on the automated extraction where available, so only those without
+# automated extraction need to be done
+
+d <- d_sub %>% 
+  select(-(vaccine:traditional), 
+         -(subject_blind:analyst_blind),
+         -sponsor_type, -Interventions) %>% 
+  filter(!complete.cases(.)) %>% 
+  select(study_arm:Scientific_title, primary_purpose, multicentre, Study_design,
+         control_arm:region_Oceania, Date_enrollment_format, sample_size,
+         everything())
+
+# everything but interventions and sponsor type 
+write_csv(d, paste0(output_path, "Manual_extraction_all_2.csv"))
+
+# Interventions
+d <- d_sub %>% 
+  select(study_arm:url, Interventions, vaccine:traditional)
+
+write_csv(d, paste0(output_path, "Manual_extraction_all_2_interventions.csv"))
+
+# Rest of dataset -----
+
+d_rest <- d_all[!(d_all$TrialID %in% d_man$TrialID),] %>% 
+  arrange(TrialID)
+
+# everything but interventions and sponsor type 
+d <- d_rest %>% 
+  select(-(vaccine:traditional), 
+         -(subject_blind:analyst_blind),
+         -sponsor_type, -Interventions) %>% 
+  filter(!complete.cases(.)) %>% 
+  select(study_arm:Scientific_title, primary_purpose, multicentre, Study_design,
+         control_arm:region_Oceania, Date_enrollment_format, sample_size,
+         everything())
+
+write_csv(d, paste0(output_path, "Main.csv"))
+
+# interventions 
+d <- d_rest %>% 
+  select(study_arm:url, Interventions, vaccine:traditional)
+
+write_csv(d, paste0(output_path, "Inverventions.csv"))
+
 
 # Summarise data -----
 d <- d_all %>% 
   select(control_arm:traditional) %>% 
-  select(-sample_size)
+  select(-sample_size, -(vaccine:traditional))
+
 sapply(d, table, useNA = "a")
 
-# Bridging flag -----
-table(d_all$Bridging_flag, useNA = "a")
-
-sum(d_all$Bridging_flag != "FALSE" & d_all$prospective == "No")
-# only 59 to review 
-
+d_all %>% 
+  select(-(vaccine:traditional), 
+         -(subject_blind:analyst_blind),
+         -sponsor_type, -multicentre) %>% 
+  filter(!complete.cases(.))
 
 d_all %>% 
-  sample_n(100) %>% 
-  arrange(study_arm) %>% 
-  select(Bridging_flag, everything()) 
+  sample_n(200) %>% 
+  select(Source_registry, TrialID, Interventions, vaccine:traditional) %>% 
+  arrange(Source_registry) %>% 
+  View()
 
 
-d_man %>% 
-  select(UseOfControlArm:ContradictionProspectiveRegistration) %>% 
-  sapply(function(x) table(x, useNA = "a"))
+# d_man <- d_man %>% 
+#   rename(url = URL, 
+#          Date_enrollment_format = `Start Date`,
+#          control_arm = UseOfControlArm,
+#          randomisation = Randomisation,
+#          blinding = Blinding,
+#          prospective = ProspectiveRegistration,
+#          phase_clean = Phase,
+#          region_Africa = Africa, 
+#          region_N_America = NorthernAmerica,
+#          region_L_America = LatinAmericaCarribbean,
+#          region_Asia = Asia,
+#          region_Europe = Europe,
+#          region_Oceania = Oceania,
+#          multicentre = MultiCentre,
+#          primary_purpose = PrimaryPurpose,
+#          sponsor_type = SponsorType,
+#          sample_size = SampleSize,
+#          vaccine = Vaccine,
+#          conventional = Conventional,
+#          traditional = Traditional) 
 
-d_sub %>% 
-  select(control_arm:traditional) %>% 
-  sapply(function(x) table(x, useNA = "a"))
 
-
-unique(d_all$Primary_sponsor[is.na(d_all$sponsor_type)])
-
+# keep <- (x != y) | (is.na(x)) | (is.na(y))
 
 
