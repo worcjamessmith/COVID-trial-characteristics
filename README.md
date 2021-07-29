@@ -52,6 +52,8 @@ The lists of eligible trials, including the subsets of 847 trials, are in `data/
   * compares the results of the automated extraction to the subset of 15% trials done manually. 
   Differences in between the datasets are stored in .csv files in `data/automated_extraction/compare_to_manual/` for reference, with each csv named for the variable whose differences are shown in the file.
   
+  * produces datasets with NA values that need to be manually extracted. These were converted to `.xlsx` files, data validation added, and then distributed to team members for extraction. 
+  
   
 # Dependency management
 The project uses [`renv`](https://rstudio.github.io/renv/articles/renv.html). Use `renv::restore()` to download the correct package versions and ensure computational reproducibility. 
