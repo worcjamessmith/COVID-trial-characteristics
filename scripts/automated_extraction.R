@@ -982,7 +982,7 @@ d_2[d_2$TrialID == "PACTR202009786901147", ]$Date_enrollment_format <-
 
 # where trial is not prospective but has a bridging flag, we need to manually
 # review the bridged registrations to check they aren't prospective on those
-d_2$prospective1 <- 
+d_2$prospective <- 
   ifelse(d_2$prospective == "No" & 
            !(d_2$Bridging_flag == "FALSE" | is.na(d_2$Bridging_flag)), 
          NA_character_, d_2$prospective) 
