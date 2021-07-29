@@ -980,6 +980,13 @@ d_2[d_2$TrialID == "PACTR202006760881890", ]$Date_enrollment_format <-
 d_2[d_2$TrialID == "PACTR202009786901147", ]$Date_enrollment_format <- 
   as.Date("2021/02/04")
 
+# where trial is not prospective but has a bridging flag, we need to manually
+# review the bridged registrations to check they aren't prospective on those
+d_2$prospective1 <- 
+  ifelse(d_2$prospective == "No" & 
+           !(d_2$Bridging_flag == "FALSE" | is.na(d_2$Bridging_flag)), 
+         NA_character_, d_2$prospective) 
+
 # 5. GEOGRAPHIC REGION -----
 
 # we want to have NA and LA as separate regions:
