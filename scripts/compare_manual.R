@@ -87,7 +87,7 @@ write_csv(difs, paste0(output_path_difs, "blinding.csv"))
 
 # Prospective reg-----
 
-# some disagreement, unsure what's going on 
+# some disagreement - explained in paper
 
 x <- which(d_man$ProspectiveRegistration != d_sub$prospective)
 
@@ -373,30 +373,5 @@ d_all %>%
   arrange(Source_registry) %>% 
   View()
 
-
-# d_man <- d_man %>% 
-#   rename(url = URL, 
-#          Date_enrollment_format = `Start Date`,
-#          control_arm = UseOfControlArm,
-#          randomisation = Randomisation,
-#          blinding = Blinding,
-#          prospective = ProspectiveRegistration,
-#          phase_clean = Phase,
-#          region_Africa = Africa, 
-#          region_N_America = NorthernAmerica,
-#          region_L_America = LatinAmericaCarribbean,
-#          region_Asia = Asia,
-#          region_Europe = Europe,
-#          region_Oceania = Oceania,
-#          multicentre = MultiCentre,
-#          primary_purpose = PrimaryPurpose,
-#          sponsor_type = SponsorType,
-#          sample_size = SampleSize,
-#          vaccine = Vaccine,
-#          conventional = Conventional,
-#          traditional = Traditional) 
-
-
-# keep <- (x != y) | (is.na(x)) | (is.na(y))
 
 

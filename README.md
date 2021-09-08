@@ -54,6 +54,10 @@ The lists of eligible trials, including the subsets of 847 trials, are in `data/
   
   * produces datasets with NA values that need to be manually extracted. These were converted to `.xlsx` files, data validation added, and then distributed to team members for extraction. 
   
+7. `consolidate_manual_extraction.R`
+
+  * Combines the manual extraction efforts for the data that couldn't be automated and compares it, generating a final dataset with fields where there were differences. Also calculates rates of agreement.
+  
   
 # Dependency management
 The project uses [`renv`](https://rstudio.github.io/renv/articles/renv.html). Use `renv::restore()` to download the correct package versions and ensure computational reproducibility. 
