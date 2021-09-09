@@ -1,6 +1,7 @@
 # consolidate_manual_extraction.R
 
 # Load -----
+library(rqdatatable) # for natural_join
 library(tidyverse)
 library(readxl)
 
@@ -105,6 +106,53 @@ sponsors_all <- d_all %>%
   select(TrialID, url, sponsor_type, Primary_sponsor) %>% 
   filter(complete.cases(.))
 
+# rename columns to match
+d_man <- d_man %>% 
+  rename(url = URL,
+         Scientific_title = Title,
+         Conditions = Condition,
+         study_arm = COVID,
+         Date_enrollment_format = `Start Date`,
+         control_arm = UseOfControlArm,
+         randomisation = Randomisation,
+         blinding = Blinding,
+         subject_blind = SubjectBlind,
+         caregiver_blind = CaregiverBlind,
+         investigator_blind = InvestigatorBlind,
+         outcome_blind = OutcomeBlind, 
+         analyst_blind = AnalystBlind, 
+         prospective = ProspectiveRegistration,
+         Source_registry = SourceRegistry,
+         phase_clean = Phase,
+         region_Africa = Africa, 
+         region_N_America = NorthernAmerica,
+         region_L_America = LatinAmericaCarribbean,
+         region_Asia = Asia,          
+         region_Europe = Europe,
+         region_Oceania = Oceania,
+         multicentre = MultiCentre,
+         primary_purpose = PrimaryPurpose,
+         sponsor_type = SponsorType,
+         sample_size = SampleSize,
+         conventional = Conventional,
+         vaccine = Vaccine,
+         traditional = Traditional)
+
+# make data same in study_arm
+d_man[d_man$study_arm == "Yes", ]$study_arm <- "covid"
+d_man[d_man$study_arm == "No", ]$study_arm <- "main"
+d_man[d_man$study_arm == "IM", ]$study_arm <- "im"
+
+# Fix original manual
+
+# join in this way because we want to rely on the automated extraction when it
+# was done. The automated and manual differ a little because we didn't correct
+# some entries, particularly in prospective, as there was ambiguity about what
+# was correct. This is discussed in the paper. 
+d_man <- natural_join(d_sub, d_man, 
+                      by = c("TrialID", "url"),
+                      jointype = "FULL")
+
 # Make datasets -----
 
 d1a <- make_datasets(bind_rows(dfs$Main2, d), 
@@ -123,7 +171,7 @@ d1 <- bind_rows(d1a, d1b) %>%
 
 stopifnot(all.equal(d_all$TrialID, d1$TrialID))
 
-# can't do the second one yet because don't have it.....
+# can't do the second one yet because don't have all the data
 d2a <- make_datasets(bind_rows(dfs$Main1, d), 
                      dfs$Interventions2, # don't yet have interventions1
                      dfs$Sponsor_type_manual1) %>% 
@@ -136,8 +184,6 @@ rm(d1a, d1b)
 summary(d1)
 
 write_csv(d1, "d1.csv")
-
-
 
 
 
