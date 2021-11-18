@@ -1,0 +1,308 @@
+---
+title: "Supplementary analysis: risk of bias in COVID-19 trial registrations protocol"
+author: "James A. Smith. Power analysis by Christiana Kartsonaki" 
+date: "27/08/2020"
+output: 
+  pdf_document:
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load, warning = FALSE, message = FALSE, include = FALSE}
+library(powerMediation) # for power analysis
+library(tidyverse) # for data manipulation
+library(ggdag) # for directed acyclic graph  
+library(EValue) # for e-values
+```
+
+# Identification of control sample
+The following code will be used to randomly order the potentially eligible trials for each arm of our dataset, after filters which can be applied automatically have been applied. 
+
+```{r random sample}
+set.seed(1234)
+N <- 100000 # abritray dataset size chosen to demonstrate code
+
+# simulate list of potentially eligible trial registrations from ICTRP
+ictrp_data <- data.frame(trialID = paste0("TrialID",
+                                    round(runif(n = N, min = 0, max = 100000))),
+                   # random data for illustration
+                   Other_registry_data = sample(LETTERS, size = N, replace = T))
+# randomly order that list
+rows <- sample(nrow(ictrp_data))
+ictrp_random <- ictrp_data[rows, ]
+
+```
+\newpage
+
+# Causal diagram
+
+Generate a directed acylic graph (DAG) representing the relationships between covariates included in our model.
+
+```{r DAG, fig.height = 5, fig.width = 8, echo = F}
+set.seed(12)
+theme_set(theme_dag())
+
+dag_labs <- c("outcome" = "Outcome",
+              "covid" = "COVID-19",
+              "mediators" = "Other covariates",
+              "sponsor" = "Sponsor type")
+
+coords <- data.frame(name = c("mediators", "covid", "outcome", "sponsor"), 
+           x = c(9.2, 8.85, 10.05, 8.85),
+           y = c(2.6, 3.2, 2.6, 2))
+
+DAG <- dagify (outcome ~ covid,
+                mediators ~ covid,
+                outcome ~ mediators,
+                outcome ~ sponsor,
+                covid ~ sponsor,
+                mediators ~ sponsor,
+              labels = dag_labs,
+              exposure = "covid",
+              outcome = "outcome", 
+              coords = coords) 
+
+
+p <- ggdag(DAG, text = FALSE, use_labels = "label")
+plot(p)
+
+```
+
+The DAG shows that there is a back door path from COVID-19 to outcome through sponsor type.
+
+# Power analysis
+
+We calculate power as follows. 
+
+```{r power variables}
+# inputs for power analysis 
+n_comparisons <- 4
+total_alpha <- 0.05
+alpha <- total_alpha/n_comparisons
+power <- 0.95
+p1 <- 0.5 # probability of outcome in COVID group
+p2 <- 0.6 # probability of outcome in comparator group
+prop <- 0.5 # proportion of sample in comparator group
+
+# power calculation 
+sample_size <- SSizeLogisticBin(p1 = p1, p2 = p2, B = prop, alpha = alpha, power = power)
+```
+
+The required sample size with power = `r power*100`% and alpha = `r total_alpha` for `r n_comparisons` comparisons, to detect a `r (p2 - p1)*100`% difference between groups assuming `r p1` probability of outcome in the COVID-19 group is `r sample_size`. 
+
+\newpage
+
+# Analysis of results
+## Simulated dataset
+Data with the fields specified in our protocol are generated so that the analytical code we intend to use to analyse the results can be specified. Note that the distribution of the variables and relationships between them are not necessarily what we expect to see in the final data. These are the charateristics of the dataset, assuming no missing data or that missing data has been imputed:
+
+```{r simulate data, echo=FALSE}
+N <- 2500 # Total N for simulated dataset
+yes_no <- c("Yes", "No")
+registries <- c("ACTRN", "ChiCTR", "CTRI", "DRKS", "EUCTR", "IRCT", "ISRCTN", 
+                "JPRN", "KCT", "LBCTR", "CT.gov", "NTR", "PACTR", "PER", "RBR", 
+                "RPCEC", "SLCTR", "TCTR")
+
+main_dataset <- data.frame (COVID = as.factor(rep(yes_no, each = N/2)),
+      Use_of_control = as.factor(sample(yes_no, size = N, replace = T)),
+      Randomisation = as.factor(sample(c(yes_no), N, T)),
+      Blinding = as.factor(sample(yes_no, N, T)),
+      Prospective_registration = as.factor(sample(yes_no, N, T)),
+      Source_registry = as.factor(sample(registries, N, T)), 
+      Phase = as.factor(sample(c(1:4, "Undefined"), N, T)),
+      Africa_location = as.factor(sample(yes_no, N, replace = T)),
+      Latin_america_location = as.factor(sample(yes_no, N, T)),
+      North_america_location = as.factor(sample(yes_no, N, T)),
+      Asia_location = as.factor(sample(yes_no, N, T)),
+      Europe_location = as.factor(sample(yes_no, N, T)),
+      Oceania_location = as.factor(sample(yes_no, N, T)),
+      Multi_centre = as.factor(sample(c(yes_no), N, T)),
+      Primary_purpose = as.factor(sample(c("Prevention", "Treatment", "Other"),
+                                         N, T)),
+      Sponsor_type = as.factor(sample(c("Industry", "Investigator", "Non-industry"),
+                                      N, T)),
+      Sample_size = round(runif(N, min = 1, max = 5000)),
+      Conventional = as.factor(sample(yes_no, N, replace = T)), 
+      Vaccine = as.factor(sample(yes_no, N, replace = T)),
+      Traditional = as.factor(sample(yes_no, N, replace = T)))
+
+str(main_dataset)
+
+# create new indication matched dataset (same variables)
+indication_dataset <- main_dataset
+
+
+```
+
+An indication matched dataset is also generated which is the same as the main dataset. In the actual dataset, the control arm will differ.
+
+## Direct effect (analyses 4 and 5)
+For each outcome we generate a logistic regression model with adjustment for all covariates, not including the other outcomes.
+
+```{r direct models main}
+
+# define outcome variables
+myvars <- c("Use_of_control", "Randomisation", "Blinding", "Prospective_registration")
+
+# define the adjustment set. This is the same for the main and indication dataset
+main_direct_adjustment <- main_dataset %>%
+  select(COVID, Phase:Traditional) %>%
+  names()
+
+# logistic regression for each outcome
+main_direct_models <- lapply(myvars, function (x){
+  glm(as.formula(paste0(x, "~", paste(main_direct_adjustment, collapse = "+"))),
+      family = binomial(link = "logit"),
+      data = main_dataset)
+})
+
+names(main_direct_models) <- myvars
+
+```
+
+We repeat the same analyses on the indication-matched dataset (not shown in rendered document).
+
+```{r direct models indication, echo = F}
+# logistic regression for each outcome
+indication_direct_models <- lapply(myvars, function (x){
+  glm(as.formula(paste0(x, "~", paste(main_direct_adjustment, collapse = "+"))),
+      family = binomial(link = "logit"),
+      data = indication_dataset)
+})
+
+names(indication_direct_models) <- paste0(myvars, "_(direct_indication)")
+
+
+```
+
+## Total effect (analyses 6 and 7)
+We repeat the main analysis adjusting only for confounding variables.
+
+```{r total models main}
+# define adjustment set. This is the same for the main and indication dataset
+main_total_adjustment <- c("COVID", "Sponsor_type")
+
+main_total_models <- lapply(myvars, function (x){
+  glm(as.formula(paste0(x, "~", paste(main_total_adjustment, collapse = "+"))),
+      family = binomial(link = "logit"),
+      data = main_dataset)
+})
+
+names(main_total_models) <- paste0(myvars, "_(total)")
+
+```
+
+We repeat the same analyses on the indication-matched dataset (not shown in rendered document).
+
+```{r total models indication, echo = F}
+
+# logistic regression for each outcome
+indication_total_models <- lapply(myvars, function (x){
+  glm(as.formula(paste0(x, "~", paste(main_total_adjustment, collapse = "+"))),
+      family = binomial(link = "logit"),
+      data = indication_dataset)
+})
+
+names(indication_total_models) <- paste0(myvars, "_(total_indication)")
+
+```
+
+## E-value (analysis 8)
+E-values are calculated as follows, where required.
+
+```{r evalues, message = F, results = "hide"}
+# control model is used an example, as we do not know in advance which, if any, outcomes
+# will warrant e-value calculation
+control_model <- main_direct_models$Use_of_control
+
+evalues.OR(est = exp(coef(control_model)["COVIDYes"]),
+           lo = exp(confint(control_model, level = 1-alpha)["COVIDYes", 1]),
+           hi = exp(confint(control_model, level = 1-alpha)["COVIDYes", 2]),
+           rare = T, # T if the outcome >15% at end of follow up
+           true = 1) # odds ratio for which we want to calculate e-value (i.e. H0)
+
+```
+
+## Geographic regions as confounders (analysis 9)
+Analyses 6 and 7 are repeated with geographical regions included as coviariates.
+
+```{r total models sensitivity}
+# add locations to the adjustment set
+locations <- main_dataset %>%
+  select(Africa_location:Oceania_location) %>%
+  names()
+region_sens_adjustment <- c(main_total_adjustment, locations)
+
+# logistic regression model for each outcome
+main_total_models_sens <- lapply(myvars, function (x){
+  glm(as.formula(paste0(x, "~", paste(region_sens_adjustment, collapse = "+"))),
+      family = binomial(link = "logit"),
+      data = main_dataset)
+})
+
+names(main_total_models_sens) <- paste0(myvars, "_(sensitivity)")
+
+```
+This is repeated for the indication-matched dataset (not shown in rendered document)
+
+```{r total models indication sensitivity, echo = F}
+indication_total_models_sens <- lapply(myvars, function (x){
+  glm(as.formula(paste0(x, "~", paste(region_sens_adjustment, collapse = "+"))),
+      family = binomial(link = "logit"),
+      data = indication_dataset)
+})
+
+names(indication_total_models_sens) <- paste0(myvars, "_(sensitivity_indication)")
+
+```
+
+## Calculate statistics
+
+P-values also extracted for the Wald test for the coefficients, and ORs, and CIs are calculated.
+
+```{r}
+# list of all models
+all_direct_models <- c(main_direct_models, indication_direct_models)
+all_total_models <-  c(main_total_models, indication_total_models)
+models <- c(all_direct_models, all_total_models, 
+            main_total_models_sens, indication_total_models_sens)
+
+# p.values for COVID coefficients
+p_vals <- sapply(models, function (x){
+  coef(summary(x))["COVIDYes", "Pr(>|z|)"]
+})
+
+# ORs for COVID coefficient
+ORs <- sapply(models, function (x){
+  exp(coef(x)["COVIDYes"])
+})
+
+# CIs for COVID OR
+CIs <- sapply(models, function(x){
+  suppressMessages(exp(confint(x, level = 1 - alpha))["COVIDYes", ])
+})
+
+results <- t(rbind(ORs, CIs, p_vals))
+```
+
+
+<!-- ```{r session info, include = F} -->
+<!-- installed.packages()[names(sessionInfo()$otherPkgs), "Version"] -->
+<!-- ``` -->
+
+<!-- # Session Info -->
+<!-- ```{r} -->
+<!-- ##         EValue        cowplot         sjPlot          ggdag        forcats -->
+<!-- ##        "3.0.0"        "1.0.0"        "2.8.4"        "0.2.2"        "0.5.0" -->
+<!-- ##        stringr          dplyr          purrr          readr          tidyr -->
+<!-- ##        "1.4.0"        "1.0.0"        "0.3.4"        "1.3.1"        "1.1.0" -->
+<!-- ##         tibble        ggplot2      tidyverse powerMediation -->
+<!-- ##        "3.0.1"        "3.3.1"        "1.3.0"        "0.3.2"8 -->
+<!-- ``` -->
+
+
+
+
