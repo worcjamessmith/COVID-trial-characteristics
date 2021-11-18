@@ -14,3 +14,6 @@ data/initial_import/clean
 working.Rmd
 data/initial_import/intermediate/ictrp.R
 working.R
+analysis_test.R
+d_check.csv
+d1.csv
