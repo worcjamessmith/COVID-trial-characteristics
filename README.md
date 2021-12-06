@@ -14,11 +14,11 @@ The raw data file from ICTRP is too large to push to GitHub. It is instead store
 ## Data processing
 To run the data processing script with the full dataset, the main raw data file (`ICTRPFullExport-672212-23-11-20.csv`) needs to be added to the `data/initial_import/raw` folder. See info on raw data files below. There is a 1% sample of the raw data provided in this repo to demonstrate computational reproducibility, but the full file is too large to push to github. The scripts will create the necessary folders and subfolders.
 
-1. `clean_data.R`
+1. `01_clean_data.R`
 
     * Takes raw csv files and produces .rData and csv files of both ICTRP (for control arms) and covid data. Fixes dates, removes quotations, and adds source registry column. All original columns are kept in the export but not necessarily cleaned if we don't need them.
 
-2. `filter_data.R`
+2. `02_filter_data.R`
 
     * Takes output of `clean_data.R` and removes withdrawn trials, limits to interventional trials, limits dates, filters conditions, randomly orders rows and creates csvs for manual eligibility screen. 
     
@@ -28,7 +28,7 @@ The output produced from `filter_data.R` was copied into a new intermediate subf
     
 Eligibility screens were done in duplicate by two reviewers and the results of the screen are in `...intermediate/screened`
     
-3. `compare_eligibility.R` 
+3. `03_compare_eligibility.R` 
 
     * Takes the datasets screened for eligibility and compares the decisions, producing a dataset for each of the arms of the dataset with any disagreements. The new datasets contain a column for the final consensus decision and a column any notes about the decisions. The produced csv files are located in  `...intermediate/for_screening`. Copies of these were converted to excel files and screened to examine sources of disagreements and decide on inclusion/exclusion.
     
@@ -36,18 +36,18 @@ The files with consensus decisions are in `...intermediate/screened` (suffix `_c
   
 ## Develop final dataset
 
-4. `list_included_trials.R`
+4. `04_list_included_trials.R`
 
     * Combines consensus decisions from disagreements with agreements from the first screen, and produces the stratified random samples of 15% data used for manual extraction for quality control. Also produces csv files of all eligible trials identified and the 847 trials specified in the protocol to be used as the final dataset. All eligible trials are stored in case we need to add more trials at a later date.
     
 The random samples for manual extraction are in: `data/manual_processing/manual_extraction/random_sample/`.
 The lists of eligible trials, including the subsets of 847 trials, are in `data/manual_processing/eligibility_screen/eligible_trials/`.
 
-5. `automated_extraction.R`
+5. `05_automated_extraction.R`
 
     * takes the dataset of eligible trials and automatically extracts variables that are needed for analysis where possible. The resulting dataset is in `data/automated_extraction/automated_extraction.csv`.
   
-6. `compare_manual.R`
+6. `06_compare_manual.R`
 
     * compares the results of the automated extraction to the subset of 15% trials done manually. 
   Differences in between the datasets are stored in .csv files in `data/automated_extraction/compare_to_manual/` for reference, with each csv named for the variable whose differences are shown in the file.
@@ -56,12 +56,14 @@ The lists of eligible trials, including the subsets of 847 trials, are in `data/
   
     * makes the second dataset of the 15% sample that was initially extracted in duplicate.
   
-7. `consolidate_manual_extraction.R`
+7. `07_consolidate_manual_extraction.R`
 
     * Combines the manual extraction efforts for the data that couldn't be automated and compares it, generating a final dataset with fields where there were differences. Also calculates rates of agreement.
     * `Compared.csv` is written to `data/manual_processing/manual_extraction/`. Any differences, or entries that were NA in either extraction effort, are marked as NA for a final manual consolidation. The csv was converted manually to `.xlsx` and data validation added, before all NAs were manually and a decision was made.
   
-8. 
+8. `08_finalise_data.R`
+
+    * Read in consolidated data and do some final checks/ corrections, then generate `data/final_dataset.csv`
   
 # Dependency management
 The project uses [`renv`](https://rstudio.github.io/renv/articles/renv.html). Use `renv::restore()` to download the correct package versions and ensure computational reproducibility. 
