@@ -20,6 +20,13 @@ d_check <- read_csv(file_check, guess_max = 2541) %>%
 d$randomisation[which(d$control_arm == "No" & d$randomisation == "No")] <- 
   "Not applicable"
 
+# "trials with a single group will be considered...unblinded"
+d$blinding[which(d$control_arm == "No" & d$blinding == "Yes")] <- "No"
+
+# manually reviewed those with unreported control arm. This has placebo
+# suggesting it it not single arm
+d$control_arm[1075] <- "Yes"
+
 # there are more NA in the compared data, probably because a few cols ended up
 # differing between the manual extractions. Replace with earlier version that is
 # more complete. (not used in analysis)
