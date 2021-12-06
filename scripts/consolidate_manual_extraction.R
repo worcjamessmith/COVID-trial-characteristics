@@ -1,4 +1,7 @@
-# consolidate_manual_extraction.R
+# Takes the manual extraction efforts and combines them into two datasets. Those
+# two datasets are then compared and any discrepancies (or fields that were left
+# as NA in at least one dataset) are recorded in a new dataset with "NA".
+# That dataset is saved for manual review and consolidation.
 
 # Load -----
 library(rqdatatable) # for natural_join
@@ -8,6 +11,8 @@ library(readxl)
 # Inputs -----
 # file path for all excels to import
 file_path <- "data/manual_processing/manual_extraction/completed/"
+# output path
+output_path <- "data/manual_processing/manual_extraction/Compared.csv"
 
 # Import data -----
 # automated extraction 
@@ -22,7 +27,8 @@ dfs <- sapply(paths, read_xlsx, na = c("", "NA"))
 # remove file type from names 
 files <- substr(files, 1, nchar(files)-5)
 names(dfs) <- files
-names(dfs)[1] <- "Interventions2"
+names(dfs)[1] <- "Interventions1" # correct typo
+names(dfs)[2] <- "Interventions2"
 
 # Function -----
 make_datasets <- function(main, intervention, sponsor){
@@ -68,6 +74,10 @@ make_datasets <- function(main, intervention, sponsor){
 # Wrangle -----
 d_man <- d_man %>% 
   filter(Exclude != "Yes")
+
+d_man$`Start Date` <- 
+  as.Date(d_man$`Start Date`, 
+        format = "%d/%m/%Y")
 
 # subset of automated data that was already manually extracted
 d_sub <- d_all[(d_all$TrialID %in% d_man$TrialID),] %>% 
@@ -143,18 +153,25 @@ d_man[d_man$study_arm == "Yes", ]$study_arm <- "covid"
 d_man[d_man$study_arm == "No", ]$study_arm <- "main"
 d_man[d_man$study_arm == "IM", ]$study_arm <- "im"
 
-# Fix original manual
+# Fix original manual -----
 
 # join in this way because we want to rely on the automated extraction when it
-# was done. The automated and manual differ a little because we didn't correct
-# some entries, particularly in prospective, as there was ambiguity about what
-# was correct. This is discussed in the paper. 
-d_man <- natural_join(d_sub, d_man, 
+# was done in this case. The automated and manual differ a little because we
+# didn't correct some entries, particularly in prospective, as there was
+# ambiguity about what was correct. This is discussed in the paper.
+d_man2 <- natural_join(d_sub, d_man, 
                       by = c("TrialID", "url"),
                       jointype = "FULL")
 
+# use the original dates, as the join messes them up. use d_man rather than
+# d_sub as it has 2 NA filled in
+d_man2$Date_enrollment_format <- d_man$Date_enrollment_format
+d_man <- d_man2
+rm(d_man2)
+
 # Make datasets -----
 
+# Dataset 1
 d1a <- make_datasets(bind_rows(dfs$Main2, d), 
                    bind_rows(dfs$Interventions2, 
                              dfs$Manual_extraction_all_interventions_2), 
@@ -171,19 +188,58 @@ d1 <- bind_rows(d1a, d1b) %>%
 
 stopifnot(all.equal(d_all$TrialID, d1$TrialID))
 
-# can't do the second one yet because don't have all the data
+# Dataset 2
+# there are some in d which were also in d_man. Those are removed
+d <- d[!(d$TrialID %in% d_man$TrialID),] %>% 
+  arrange(TrialID)
+
 d2a <- make_datasets(bind_rows(dfs$Main1, d), 
-                     dfs$Interventions2, # don't yet have interventions1
+                     dfs$Interventions1, 
                      dfs$Sponsor_type_manual1) %>% 
   arrange(TrialID)
-# need to rename the columns in cat's manual one
 
-stopifnot(all.equal(d1a$TrialID, d2a$TrialID))
-rm(d1a, d1b)
+# join with manual data
+d2 <- bind_rows(d2a, d_man) %>% 
+  arrange(TrialID)
 
-summary(d1)
+stopifnot(all.equal(d1$TrialID, d2$TrialID))
 
-write_csv(d1, "d1.csv")
+# Compare datasets -----
+
+# remove extra cols from 15% original manual extraction
+d2 <- d2 %>% 
+  select(-c(...40, ContradictionBlinding, ContradictionControlArm,
+            ContradictionProspectiveRegistration, 
+            ContradictionRandomisation))
+
+# correct some "NA" s
+d2$Exclude[d2$Exclude == "NA"] <- NA
+
+stopifnot(all.equal(colnames(d1), colnames(d2)))
+
+d_com <- d1 # combined dataset
+# compare every col and make NA where there are any discrepancies
+v_names <- colnames(d1)
+for (v in v_names){
+  x <- which(d1[v] != d2[v] | is.na(d1[v]) | is.na(d2[v]))
+  d_com[x, v] <- NA
+}
+
+# for exclude and notes, we want to keep all of both to review.
+d_com$Exclude1 <- d1$Exclude
+d_com$Exclude2 <- d2$Exclude
+d_com$Notes1 <- d1$Notes
+d_com$Notes2 <- d2$Notes
+
+d_com <- select(d_com, -Notes)
+
+# Write data -----
+write.csv(d_com, output_path)
+
+
+
+
+
 
 
 

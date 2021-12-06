@@ -54,10 +54,14 @@ The lists of eligible trials, including the subsets of 847 trials, are in `data/
   
   * produces datasets with NA values that need to be manually extracted. These were converted to `.xlsx` files, data validation added, and then distributed to team members for extraction. 
   
+  * makes the second dataset of the 15% sample that was initially extracted in duplicate.
+  
 7. `consolidate_manual_extraction.R`
 
   * Combines the manual extraction efforts for the data that couldn't be automated and compares it, generating a final dataset with fields where there were differences. Also calculates rates of agreement.
+  * `Compared.csv` is written to `data/manual_processing/manual_extraction/`. Any differences, or entries that were NA in either extraction effort, are marked as NA for a final manual consolidation. The csv was converted manually to `.xlsx` and data validation added, before all NAs were manually and a decision was made.
   
+8. 
   
 # Dependency management
 The project uses [`renv`](https://rstudio.github.io/renv/articles/renv.html). Use `renv::restore()` to download the correct package versions and ensure computational reproducibility. 
