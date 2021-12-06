@@ -27,6 +27,15 @@ d$blinding[which(d$control_arm == "No" & d$blinding == "Yes")] <- "No"
 # suggesting it it not single arm
 d$control_arm[1075] <- "Yes"
 
+# One unclear primary purpose on review is treatment
+d$primary_purpose[d$TrialID == "ChiCTR1900026362"] <- "Treatment"
+
+# JPRN-JapicCTI-163397 locations have been recorded as unreported, but review
+# indicates that japan is country of recruitment
+stopifnot(colnames(d)[15]== "region_Africa")
+d[d$TrialID=="JPRN-JapicCTI-163397", 15:20 ] <-  "No"
+d$region_Asia[d$TrialID=="JPRN-JapicCTI-163397"] <- "Yes"
+
 # there are more NA in the compared data, probably because a few cols ended up
 # differing between the manual extractions. Replace with earlier version that is
 # more complete. (not used in analysis)
@@ -40,6 +49,7 @@ stopifnot(all.equal(d$url, d_check$url))
 # there are no NAs in cols used for modelling, except for sample size. I have
 # manually checked those entry and no sample size is given
 
+# Sort data -----
 d <- d %>% 
   filter(Exclude_decision != "Yes" |
            is.na(Exclude_decision))
@@ -65,7 +75,13 @@ d <- d %>%
   rename(start_date = Date_enrollment_format,
          source_registry = Source_registry)
 
-colnames(d)
+d$sponsor_type[d$sponsor_type == "industry"] <- "Industry"
+d$sponsor_type[d$sponsor_type == "investigator"] <- "Investigator"
+d$sponsor_type[d$sponsor_type == "non_industry"] <- "Non industry"
+d$sponsor_type[d$sponsor_type == "unknown"] <- "Unreported"
+
+d$multicentre[d$multicentre == "Unknown"] <- "Unreported"
+
 
 # Write data -----
 write_csv(d, output_path)

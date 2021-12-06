@@ -5,9 +5,9 @@ This repo is for work done for the registered report: Association between invest
 Here the script processing order and any manual steps taken are explained.
 
 ## Data download 
-The raw data file from ICTRP is too large to push to GitHub. It is instead stored on OSF.
+The raw data file from ICTRP is too large to push to GitHub. It is instead stored on OSF. If you already have it downloaded, this script is not required. 
 
-1. `download_raw_data.R`
+`00_download_raw_data.R`
     
     * This downloads the large raw data file from OSF. You could also use it to download the zipped file if the csv is too large. The other necessary raw data files are already in this repo (see description of raw data files below). 
 
