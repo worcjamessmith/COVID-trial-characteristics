@@ -197,6 +197,11 @@ write_csv(covid, paste0(file_path, output_folder, output_subfolder, "covid.csv")
 # specific random sample drawn for the other arms, which had already been
 # reviewed when this mistake was noticed.
 
+# filter the dates. 2016 should give sufficient sample size
+ictrp <- ictrp %>% 
+  filter(Date_registration_format >= "2016-01-01" & 
+           Date_registration_format <= "2019-12-31")
+
 im_conds <- c("septic shock",
               "multi organ failure", "multiple organ failure", 
               "multiple organ dysfunction syndrome",
@@ -242,11 +247,6 @@ rows <- grep(paste(cov_conds, collapse="|"),
              ictrp_im$Conditions, ignore.case= T)
 
 ictrp_im <- ictrp_im[-rows, ]
-
-# filter the dates. 2016 should give sufficient sample size
-ictrp_im <- ictrp_im %>% 
-  filter(Date_registration_format >= "2016-01-01" & 
-           Date_registration_format <= "2019-12-31")
 
 # randomly order the rows according to the pre-specified code
 set.seed(1234)
