@@ -1,0 +1,1527 @@
+---
+title: 'Association between investigating COVID-19 and design characteristics in global clinical trial registrations'
+date: "`r format(Sys.Date(), format = '%d %b %Y')`"
+output:
+  html_document:
+    df_print: paged
+    code_folding: show
+    keep_md: yes
+    number_sections: yes
+    toc: yes
+    toc_depth: 5
+    toc_float: yes
+  pdf_document:
+    number_sections: yes
+editor_options:
+  chunk_output_type: console
+---
+
+<!--
+title: 'Supplementary analysis: risk of bias in COVID-19 trial registrations protocol'
+author: "James A. Smith. Power analysis by Christiana Kartsonaki"
+date: "27/08/2020"
+
+The preregistered code for analysis (not including MICE) is here: https://osf.io/5jf9p/. Note that it misses ‘source registry’ as a variable to adjust for, which we said in the protocol we would do. Also how we will treat each variable is stated in the data dictionary here: https://osf.io/v63qb/ on pages 23/24. Note that for a few we already said that missing/unclear would be treated as another value because that seems likely to usually be accurate (e.g. unreported blinding we consider to be unblinded).
+-->
+
+```{r, echo = FALSE, include = FALSE}
+knitr::opts_chunk$set(fig.width = 5, fig.height = 5, echo = TRUE, eval = TRUE, message = TRUE, warning = TRUE, error = TRUE, cache = TRUE, cache.path = "cache/", fig.path = paste0("figures/", knitr::opts_chunk$get("fig.path")), dev = c("png"))
+
+# library(printr)
+```
+
+```{r load, warning = FALSE, message = FALSE, include = FALSE}
+library(powerMediation)
+library(tidyverse)
+
+forestplot_height <- 15
+
+# setwd("_/James Smith")
+```
+
+```{r}
+d_import <- read_csv("data/final_dataset.csv", guess_max = 3000, na = c("Unreported", "NA"))
+  
+d <- d_import %>% 
+  select(TrialID, study_arm:analyst_blind) %>%
+  mutate_if(is.character, as.factor)
+
+# convergence issues with source registry, so group infrequent categories
+d <- d %>% 
+  mutate(source_registry = fct_lump_n(d$source_registry, n = 6))
+
+# d <- d_import %>% 
+#   select(study_arm:analyst_blind) %>%
+#   mutate_if(is.character, as.factor)
+
+# d$TrialID <- d_import$TrialID
+
+d$randomisation[d$randomisation == "Not applicable"] <- "No"
+d$randomisation[is.na(d$randomisation)]<- "No"
+d$blinding[is.na(d$blinding)]<- "No"
+d$multicentre[is.na(d$multicentre)] <- "No"
+
+# this is a deviation agreed with the editor
+d$control_arm[is.na(d$control_arm)] <- "No"
+
+# d$sample_size <- log(d$sample_size)
+
+# to impute: phase, sample size (for only 3 trials) and sponsor type
+```
+
+Below we checked the linearity in the logit assumption as per the preregistration. Generally log transformed sample size appeared to be better. 
+
+```{r linearity logit}
+# check linearity in logit 
+
+d_check <- d
+d_check <- d_check[-which(is.na(d_check$sample_size)), ]
+
+quantile(d_check$sample_size, probs = seq(0, 1, 1/5), na.rm = T)
+
+d_check <- d_check %>% 
+  mutate(
+    quintile_group = 
+      case_when(sample_size <= 38 ~ "1",
+                sample_size > 38 & sample_size <=70 ~ "2",
+                sample_size > 70 & sample_size <=133 ~ "3",
+                sample_size > 133 & sample_size <=342.6 ~ "4",
+                sample_size > 342.6 ~ "5")
+  ) 
+
+table(d_check$control_arm)
+d_check$control_arm <- as.character(d_check$control_arm)
+d_check[d_check$control_arm == "Yes",]$control_arm <- "1"
+d_check[d_check$control_arm == "No",]$control_arm <- "0"
+d_check$control_arm <- as.numeric(d_check$control_arm)
+
+d_check$randomisation <- as.character(d_check$randomisation)
+d_check[d_check$randomisation == "Yes",]$randomisation <- "1"
+d_check[d_check$randomisation == "No",]$randomisation <- "0"
+d_check$randomisation <- as.numeric(d_check$randomisation)
+
+d_check$blinding <- as.character(d_check$blinding)
+d_check[d_check$blinding == "Yes",]$blinding <- "1"
+d_check[d_check$blinding == "No",]$blinding <- "0"
+d_check$blinding <- as.numeric(d_check$blinding)
+
+d_check$prospective <- as.character(d_check$prospective)
+d_check[d_check$prospective == "Yes",]$prospective <- "1"
+d_check[d_check$prospective == "No",]$prospective <- "0"
+d_check$prospective <- as.numeric(d_check$prospective)
+
+s <- d_check %>% 
+  group_by(quintile_group) %>% 
+  summarise(prop = sum(control_arm)/ length(control_arm),
+            log_odds_control = log(prop / (1-prop)),
+            prop = sum(randomisation)/ length(randomisation),
+            log_odds_randomisation = log(prop / (1-prop)),
+            prop = sum(blinding)/ length(blinding),
+            log_odds_blinding = log(prop / (1-prop)),
+            prop = sum(prospective)/ length(prospective),
+            log_odds_prospective = log(prop / (1-prop)),
+            median = median(sample_size),
+            median_log = median(log(sample_size)))
+
+
+plot(s$median, s$log_odds_control)
+plot(s$median, s$log_odds_randomisation)
+plot(s$median, s$log_odds_blinding)
+plot(s$median, s$log_odds_prospective)
+
+plot(s$median_log, s$log_odds_control)
+plot(s$median_log, s$log_odds_randomisation)
+plot(s$median_log, s$log_odds_blinding)
+plot(s$median_log, s$log_odds_prospective)
+
+```
+
+# Summary of data
+
+```{r}
+summary(d)
+```
+
+# Summary of missing data
+
+```{r, fig.width = 15, fig.height = 7}
+# mice::md.pattern(d)
+VIM::aggr(d, numbers = TRUE, sortVars = TRUE, labels = names(data), cex.axis = 0.7, gap = 3, ylab = c("Proportion of missingness", "Missingness Pattern"), oma = c(10, 5, 5, 3))
+# VIM::marginplot(d[,c(1, 2)])
+```
+
+# Causal diagram
+
+Generate a directed acylic graph (DAG) representing the relationships between covariates included in our model.
+
+```{r DAG, fig.height = 5, fig.width = 8}
+set.seed(12)
+# theme_set(theme_dag()) # commented out and added below instead to avoid modifying the theme for subsequent plots
+
+dag_labs <- c("outcome" = "Outcome",
+              "covid" = "COVID-19",
+              "mediators" = "Other covariates",
+              "sponsor" = "Sponsor type")
+
+coords <- data.frame(name = c("mediators", "covid", "outcome", "sponsor"), 
+           x = c(9.2, 8.85, 10.05, 8.85),
+           y = c(2.6, 3.2, 2.6, 2))
+
+# DAG <- ggdag::dagify(outcome ~ covid,
+#                      mediators ~ covid,
+#                      outcome ~ mediators,
+#                      outcome ~ sponsor,
+#                      covid ~ sponsor,
+#                      mediators ~ sponsor,
+#                      labels = dag_labs,
+#                      exposure = "covid",
+#                      outcome = "outcome", 
+#                      coords = coords)
+# 
+# p <- ggdag::ggdag(DAG, text = FALSE, use_labels = "label") + ggdag::theme_dag()
+# plot(p)
+```
+
+The DAG shows that there is a back door path from COVID-19 to outcome through sponsor type.
+
+# Power analysis
+
+We calculate power as follows. 
+
+```{r power variables}
+# inputs for power analysis 
+n_comparisons <- 4
+total_alpha <- 0.05
+alpha <- total_alpha/n_comparisons
+z <- qnorm(1-alpha/2)
+power <- 0.95
+p1 <- 0.5 # probability of outcome in COVID group
+p2 <- 0.6 # probability of outcome in comparator group
+prop <- 0.5 # proportion of sample in comparator group
+
+# power calculation 
+sample_size <- SSizeLogisticBin(p1 = p1, p2 = p2, B = prop, alpha = alpha, power = power)
+```
+
+The required sample size with power = `r power*100`% and alpha = `r total_alpha` for `r n_comparisons` comparisons, to detect a `r (p2 - p1)*100`% difference between groups assuming `r p1` probability of outcome in the COVID-19 group is `r sample_size`. 
+
+# Analysis
+
+## Some more summaries
+
+```{r}
+table(d$study_arm, useNA = "ifany")
+```
+
+Generate main and indication-matched datasets:
+
+```{r}
+main_dataset <- d[which(d$study_arm %in% c("covid", "main")),]
+main_dataset$covid <- (main_dataset$study_arm == "covid")
+
+indication_dataset <- d[which(d$study_arm %in% c("covid", "im")),]
+indication_dataset$covid <- (indication_dataset$study_arm == "covid")
+```
+
+## Tables of each outcome by other variables
+
+### Control arm
+
+```{r}
+# paste(names(d)[4:length(names(d))], collapse = " + ")
+table1::table1(~ control_arm + randomisation + blinding + prospective + source_registry + phase_clean + region_Africa + region_N_America + region_L_America + region_Asia + region_Europe + region_Oceania + multicentre + primary_purpose + sponsor_type + sample_size + vaccine + conventional + traditional + subject_blind + caregiver_blind + investigator_blind + outcome_blind + analyst_blind | study_arm * control_arm, data = d)
+# tableone::CreateTableOne(vars = vars, strata = "trt", data = d, factorVars = factorVars)
+```
+
+### Randomisation
+
+```{r}
+table1::table1(~ control_arm + randomisation + blinding + prospective + source_registry + phase_clean + region_Africa + region_N_America + region_L_America + region_Asia + region_Europe + region_Oceania + multicentre + primary_purpose + sponsor_type + sample_size + vaccine + conventional + traditional + subject_blind + caregiver_blind + investigator_blind + outcome_blind + analyst_blind | study_arm * randomisation, data = d)
+```
+
+### Blinding
+
+```{r}
+table1::table1(~ control_arm + randomisation + blinding + prospective + source_registry + phase_clean + region_Africa + region_N_America + region_L_America + region_Asia + region_Europe + region_Oceania + multicentre + primary_purpose + sponsor_type + sample_size + vaccine + conventional + traditional + subject_blind + caregiver_blind + investigator_blind + outcome_blind + analyst_blind | study_arm * blinding, data = d)
+```
+
+### Prospective registration
+
+```{r}
+table1::table1(~ control_arm + randomisation + blinding + prospective + source_registry + phase_clean + region_Africa + region_N_America + region_L_America + region_Asia + region_Europe + region_Oceania + multicentre + primary_purpose + sponsor_type + sample_size + vaccine + conventional + traditional + subject_blind + caregiver_blind + investigator_blind + outcome_blind + analyst_blind | study_arm * prospective, data = d)
+```
+
+## Direct effect (analyses 4 and 5)
+
+### Complete case analysis
+
+For each outcome we fit a logistic regression model with adjustment for all covariates, not including the other outcomes.
+
+```{r direct models main}
+# define outcome variables
+myvars <- c("control_arm", "randomisation", "blinding", "prospective")
+#myvars <- c("Use_of_control", "Randomisation", "Blinding", "Prospective_registration")
+
+# define the adjustment set. 
+main_direct_adjustment <- main_dataset %>%
+  select(covid, source_registry:traditional) %>% 
+  # select(-source_registry, -conventional) %>%
+#  select(covid, source_registry:traditional, -source_registry) %>%
+#  select(covid, source_registry:traditional) %>%
+  names()
+
+# originally this was the same as main, but there were problems with
+# convergence, so intervention variables are dropped
+indication_direct_adjustment <- main_dataset %>%
+  select(covid, source_registry:traditional) %>% 
+  select(-vaccine, -conventional, -traditional) %>% 
+  names()
+
+# logistic regression for each outcome
+main_direct_models <- lapply(myvars, function (x){
+  glm(as.formula(paste(x, "~", paste(main_direct_adjustment, collapse = "+"))),
+      family = binomial(link = "logit"),
+      data = main_dataset)
+})
+
+```
+
+We are adjusting for `r paste(main_direct_adjustment, collapse = ", ")`. Adjusting for `source_registry` leads to convergence problems so this variable has been excluded. Same with `conventional` (convergence problems for indication dataset).
+
+#### Main dataset
+
+```{r direct models main results, fig.height = forestplot_height}
+# lapply(main_direct_models, summary)
+
+sjPlot::tab_model(main_direct_models)
+
+sjPlot::plot_models(main_direct_models, prefix.labels = "varname") + theme_bw() + geom_hline(yintercept = 1)
+```
+
+#### Indication-matched dataset
+
+We repeat the same analyses on the indication-matched dataset.
+
+```{r direct models indication}
+# logistic regression for each outcome
+indication_direct_models <- lapply(myvars, function (x){
+  glm(as.formula(paste(x, "~", paste(indication_direct_adjustment, collapse = "+"))),
+      family = binomial(link = "logit"),
+      data = indication_dataset)
+})
+
+names(indication_direct_models) <- paste0(myvars, "_(direct_indication)")
+```
+
+```{r direct models indication results, fig.height = forestplot_height}
+# lapply(indication_direct_models, summary)
+
+sjPlot::tab_model(indication_direct_models)
+
+sjPlot::plot_models(indication_direct_models, prefix.labels = "varname") + theme_bw() + geom_hline(yintercept = 1) # prefix.labels = "label"
+```
+
+### Multiple imputation
+
+Phase, sample size (for 3 trials) and sponsor type have missing values.
+
+#### Main dataset
+
+```{r}
+# generate start_year from start_date
+main_dataset$start_year <- as.numeric(substr(main_dataset$start_date, 1, 4))
+
+# create a new dataset where some variables are dropped
+main_for_mice <- main_dataset %>% select(-TrialID, -start_date, -study_arm)
+
+# make `covid` factor otherwise it is not used in imputation by default - may be because it is boolean
+# main_for_mice$covid <- as.factor(main_for_mice$covid)
+# it wasn't because of this...
+
+main_for_mice %>% map(class)
+```
+
+Use the `mice` command to generate an initial predictor matrix (indicating which column variables are used to predict the row variables) without making any imputations.
+
+```{r}
+set.seed(5)
+
+mice_in <- mice::mice(main_for_mice, maxit = 0, print = FALSE)
+# mice_in <- mice::mice(main_dataset, maxit = 0, print = FALSE)
+predictor_matrix <- mice_in$pred
+predictor_matrix
+
+# warning message: Number of logged events: 1
+```
+
+```{r correlation matrix main direct}
+correlation_matrix <- round(cor(sapply(main_for_mice[,c(myvars, main_direct_adjustment)], as.numeric), use = "pairwise.complete.obs"), 2)
+# correlation_matrix <- round(cor(na.omit(values)), 2)
+# keep only upper triangle
+correlation_matrix[lower.tri(correlation_matrix)] <- NA
+melted_correlation_matrix <- reshape2::melt(correlation_matrix)
+# lower triangle
+melted_correlation_matrix$Var2 <- factor(melted_correlation_matrix$Var2, levels(melted_correlation_matrix$Var2)[seq(length(levels(melted_correlation_matrix$Var2)), 1, by = -1)], ordered = TRUE)
+
+# labels_plot <- levels(melted_correlation_matrix[,1])
+# labels_plot <- labels[levels(melted_correlation_matrix[,1]),]$short
+labels_plot <- sapply(levels(melted_correlation_matrix[,1]), function(x) gsub("_", "", x))
+
+ggplot(data = melted_correlation_matrix, aes(x = Var1, y = Var2, fill = value)) + geom_tile(color = "white") + xlab("") + ylab("") + scale_fill_gradient2(low = "darkorchid4", high = "green3", mid = "white", midpoint = 0, na.value = "white", limit = c(-1, 1), name = "Correlation") + scale_x_discrete(labels = labels_plot) + scale_y_discrete(labels = labels_plot[length(labels_plot):1]) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),                                     
+  panel.grid.major = element_blank(),
+  panel.border = element_blank(),
+# panel.background = element_blank(),
+  panel.background = element_rect(fill = "white"),
+  axis.ticks = element_blank(),
+  legend.justification = c(1, 0),
+  legend.position = c(0.7, 0.7),
+  legend.direction = "horizontal") + guides(fill = guide_colorbar(barwidth = 7, barheight = 1, title.position = "top", title.hjust = 0.5))
+```
+
+```{r, eval = FALSE}
+# quickpred: quick selection procedure of predictors
+# select predictors according to data relations with a minimum correlation of ρ = 0.25
+mice_in2 <- mice::mice(main_for_mice, pred = mice::quickpred(main_for_mice, mincor = 0.25), print = FALSE)
+mice_in2$pred
+```
+
+Modify the predictor matrix such that only phase, sample size and sponsor type are imputed, using all variables. <!-- except `TrialID` and `start_date`.-->
+
+```{r}
+predictor_matrix[,"covid"] <- 1 # no need to set element in row 'covid' to 0 because the entire row will be set to 0 below
+predictor_matrix[which(!(row.names(predictor_matrix) %in% c("phase_clean", "sample_size", "sponsor_type"))),] <- 0
+```
+
+Generate 10 imputed datasets using chained equations (using package `mice`).
+
+```{r}
+main_mice <- mice::mice(main_for_mice, m = 10, pred = predictor_matrix) # , print = FALSE
+
+attributes(main_mice)
+```
+
+Original data:
+
+```{r}
+main_mice$data %>% head
+```
+
+Imputed datasets:
+
+```{r}
+main_mice$imp %>% map(head)
+
+# In order to get the third imputed data set, use the complete() function
+
+# c3 <- complete(imp, 3) 
+# md.pattern(c3)
+
+# c.long <- complete(imp, "long") # "broad"
+```
+
+Only impute the three variables listed above.
+
+```{r}
+method_vector <- main_mice$method
+method_vector[19:length(method_vector)] <- ""
+
+# methods(mice)
+```
+
+Generate 10 imputed datasets using the updated `method` vector.
+
+```{r}
+main_mice <- mice::mice(main_for_mice, method = method_vector, m = 10, pred = predictor_matrix, print = FALSE)
+```
+
+```{r}
+plot(main_mice)
+```
+
+Check that there is no trend with further iterations and that the lines mix.
+
+```{r}
+main_mice_40 <- mice::mice.mids(main_mice, maxit = 40, print = FALSE)
+plot(main_mice_40)
+```
+
+Plot of observed (blue) and imputed (red) phase:
+
+```{r}
+mice::stripplot(main_mice, phase_clean ~ .imp, pch = 20, cex = 2)
+
+# Under MCAR, univariate distributions of the observed and imputed data are expected to be identical. Under MAR, they can be different, both in location and spread, but their multivariate distribution is assumed to be identical.
+```
+
+```{r}
+mice::stripplot(main_mice)
+```
+
+##### Analysis
+
+Logistic regression analysis on the multiply imputed data.
+
+```{r direct models main mice}
+main_direct_models_mice <- lapply(myvars, function (x){
+  fit <- with(main_mice, glm(as.formula(paste(x, "~", paste(main_direct_adjustment, collapse = "+"))),
+                             family = binomial(link = "logit")))
+  pooled_fit <- mice::pool(fit)
+  return(list("fit" = fit, "pooled_fit" = pooled_fit))
+                            })
+
+names(main_direct_models_mice) <- myvars
+```
+
+```{r direct models main results mice, fig.height = forestplot_height}
+lapply(main_direct_models_mice, function(x) summary(x$pooled_fit))
+
+sum_main_direct_mice <- lapply(main_direct_models_mice, function(x) summary(x$pooled_fit))
+
+# OR and 95% CI (Bonferroni corrected)
+pool_OR_main_direct_mice <- lapply(sum_main_direct_mice, function(x) {
+  cbind(exp(cbind(x[2,2], (x[2,2]-z*(x[2,3])), 
+           (x[2,2]+z*(x[2,3])))), x[2,6])
+})
+
+pool_OR_main_direct_mice <- do.call(rbind.data.frame, pool_OR_main_direct_mice)
+colnames(pool_OR_main_direct_mice) <- c("Estimate", "Lower CI", "Upper CI", "P-value")
+pool_OR_main_direct_mice$Analysis <- "Main direct (4)"
+
+# sjPlot::tab_model(main_direct_models_mice)
+# sjPlot::plot_models(main_direct_models_mice, prefix.labels = "varname") + theme_bw()
+```
+
+`fmi`: fraction of information about the coefficients missing due to nonresponse  
+`lambda`: proportion of the variation attributable to the missing data  
+
+```{r}
+mice::densityplot(main_mice, ~ phase_clean)
+mice::densityplot(main_mice, ~ sponsor_type)
+mice::densityplot(main_mice, ~ sample_size)
+```
+
+##### Compare complete case analysis with MICE analysis for the each outcome
+
+###### Control arm
+
+```{r}
+summary(glm(as.formula(paste("control_arm", "~", paste(main_direct_adjustment, collapse = "+"))), family = binomial(link = "logit"), data = main_dataset))
+
+fit <- with(main_mice, glm(as.formula(paste("control_arm", "~", paste(main_direct_adjustment, collapse = "+"))), family = binomial(link = "logit")))
+pooled_fit <- mice::pool(fit)
+pooled_fit$pooled
+# pooled_fit$glanced
+summary(pooled_fit)
+```
+
+###### Randomisation
+
+```{r}
+summary(glm(as.formula(paste("randomisation", "~", paste(main_direct_adjustment, collapse = "+"))), family = binomial(link = "logit"), data = main_dataset))
+
+fit <- with(main_mice, glm(as.formula(paste("randomisation", "~", paste(main_direct_adjustment, collapse = "+"))), family = binomial(link = "logit")))
+pooled_fit <- mice::pool(fit)
+pooled_fit$pooled
+summary(pooled_fit)
+```
+
+###### Blinding
+
+```{r}
+summary(glm(as.formula(paste("blinding", "~", paste(main_direct_adjustment, collapse = "+"))), family = binomial(link = "logit"), data = main_dataset))
+
+fit <- with(main_mice, glm(as.formula(paste("blinding", "~", paste(main_direct_adjustment, collapse = "+"))), family = binomial(link = "logit")))
+pooled_fit <- mice::pool(fit)
+pooled_fit$pooled
+summary(pooled_fit)
+```
+
+###### Prospective registration
+
+```{r}
+summary(glm(as.formula(paste("prospective", "~", paste(main_direct_adjustment, collapse = "+"))), family = binomial(link = "logit"), data = main_dataset))
+
+fit <- with(main_mice, glm(as.formula(paste("prospective", "~", paste(main_direct_adjustment, collapse = "+"))), family = binomial(link = "logit")))
+pooled_fit <- mice::pool(fit)
+pooled_fit$pooled
+summary(pooled_fit)
+```
+
+#### Indication-matched dataset
+
+```{r}
+# generate start_year from start_date
+indication_dataset$start_year <- as.numeric(substr(indication_dataset$start_date, 1, 4))
+
+# create a new dataset where some variables are dropped
+indication_for_mice <- indication_dataset %>% select(-TrialID, -start_date, -study_arm)
+
+# make `covid` factor otherwise it is not used in imputation by default - may be because it is boolean
+# indication_for_mice$covid <- as.factor(indication_for_mice$covid)
+# it wasn't because of this...
+
+indication_for_mice %>% map(class)
+```
+
+Use the `mice` command to generate an initial predictor matrix (indicating which column variables are used to predict the row variables) without making any imputations.
+
+```{r}
+set.seed(5)
+
+mice_in <- mice::mice(indication_for_mice, maxit = 0, print = FALSE)
+# mice_in <- mice::mice(indication_dataset, maxit = 0, print = FALSE)
+predictor_matrix <- mice_in$pred
+predictor_matrix
+
+# warning message: Number of logged events: 1
+```
+
+```{r correlation matrix indication direct}
+correlation_matrix <- round(cor(sapply(indication_for_mice[,c(myvars, indication_direct_adjustment)], as.numeric), use = "pairwise.complete.obs"), 2)
+# correlation_matrix <- round(cor(na.omit(values)), 2)
+# keep only upper triangle
+correlation_matrix[lower.tri(correlation_matrix)] <- NA
+melted_correlation_matrix <- reshape2::melt(correlation_matrix)
+# lower triangle
+melted_correlation_matrix$Var2 <- factor(melted_correlation_matrix$Var2, levels(melted_correlation_matrix$Var2)[seq(length(levels(melted_correlation_matrix$Var2)), 1, by = -1)], ordered = TRUE)
+
+# labels_plot <- levels(melted_correlation_matrix[,1])
+# labels_plot <- labels[levels(melted_correlation_matrix[,1]),]$short
+labels_plot <- sapply(levels(melted_correlation_matrix[,1]), function(x) gsub("_", "", x))
+
+ggplot(data = melted_correlation_matrix, aes(x = Var1, y = Var2, fill = value)) + geom_tile(color = "white") + xlab("") + ylab("") + scale_fill_gradient2(low = "darkorchid4", high = "green3", mid = "white", midpoint = 0, na.value = "white", limit = c(-1, 1), name = "Correlation") + scale_x_discrete(labels = labels_plot) + scale_y_discrete(labels = labels_plot[length(labels_plot):1]) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),                                     
+  panel.grid.major = element_blank(),
+  panel.border = element_blank(),
+# panel.background = element_blank(),
+  panel.background = element_rect(fill = "white"),
+  axis.ticks = element_blank(),
+  legend.justification = c(1, 0),
+  legend.position = c(0.7, 0.7),
+  legend.direction = "horizontal") + guides(fill = guide_colorbar(barwidth = 7, barheight = 1, title.position = "top", title.hjust = 0.5))
+```
+
+```{r, eval = FALSE}
+# quickpred: quick selection procedure of predictors
+# select predictors according to data relations with a minimum correlation of ρ = 0.25
+mice_in2 <- mice::mice(indication_for_mice, pred = mice::quickpred(indication_for_mice, mincor = 0.25), print = FALSE)
+mice_in2$pred
+```
+
+Modify the predictor matrix such that only phase, sample size and sponsor type are imputed, using all variables. <!-- except `TrialID` and `start_date`.-->
+
+```{r}
+predictor_matrix[,"covid"] <- 1 # no need to set element in row 'covid' to 0 because the entire row will be set to 0 below
+predictor_matrix[which(!(row.names(predictor_matrix) %in% c("phase_clean", "sample_size", "sponsor_type"))),] <- 0
+```
+
+Generate 10 imputed datasets using chained equations (using package `mice`).
+
+```{r}
+indication_mice <- mice::mice(indication_for_mice, m = 10, pred = predictor_matrix , print = FALSE)
+
+attributes(indication_mice)
+```
+
+Original data:
+
+```{r}
+indication_mice$data %>% head
+```
+
+Imputed datasets:
+
+```{r}
+indication_mice$imp %>% map(head)
+
+# In order to get the third imputed data set, use the complete() function
+
+# c3 <- complete(imp, 3) 
+# md.pattern(c3)
+
+# c.long <- complete(imp, "long") # "broad"
+```
+
+Only impute the three variables listed above.
+
+```{r}
+method_vector <- indication_mice$method
+method_vector[19:length(method_vector)] <- ""
+
+# methods(mice)
+```
+
+Generate 10 imputed datasets using the updated `method` vector.
+
+```{r}
+indication_mice <- mice::mice(indication_for_mice, method = method_vector, m = 10, pred = predictor_matrix) # , print = FALSE
+```
+
+```{r}
+plot(indication_mice)
+```
+
+Check that there is no trend with further iterations and that the lines mix.
+
+```{r}
+indication_mice_40 <- mice::mice.mids(indication_mice, maxit = 40, print = FALSE)
+plot(indication_mice_40)
+```
+
+Plot of observed (blue) and imputed (red) phase:
+
+```{r}
+mice::stripplot(indication_mice, phase_clean ~ .imp, pch = 20, cex = 2)
+
+# Under MCAR, univariate distributions of the observed and imputed data are expected to be identical. Under MAR, they can be different, both in location and spread, but their multivariate distribution is assumed to be identical.
+```
+
+```{r}
+mice::stripplot(indication_mice)
+```
+
+##### Analysis
+
+Logistic regression analysis on the multiply imputed data.
+
+```{r direct models indication mice}
+indication_direct_models_mice <- lapply(myvars, function (x){
+  fit <- with(indication_mice, glm(as.formula(paste(x, "~", paste(indication_direct_adjustment, collapse = "+"))),
+                             family = binomial(link = "logit")))
+  pooled_fit <- mice::pool(fit)
+  return(list("fit" = fit, "pooled_fit" = pooled_fit))
+                            })
+
+names(indication_direct_models_mice) <- myvars
+```
+
+```{r direct models indication results mice, fig.height = forestplot_height}
+lapply(indication_direct_models_mice, function(x) summary(x$pooled_fit))
+
+sum_indication_direct_mice <- lapply(indication_direct_models_mice, function(x) summary(x$pooled_fit))
+
+# OR and 95% CI (Bonferroni corrected)
+pool_OR_indication_direct_mice <- lapply(sum_indication_direct_mice, function(x) {
+  cbind(exp(cbind(x[2,2], (x[2,2]-z*(x[2,3])), 
+           (x[2,2]+z*(x[2,3])))), x[2,6])
+})
+
+pool_OR_indication_direct_mice <- do.call(rbind.data.frame, pool_OR_indication_direct_mice)
+pool_OR_indication_direct_mice$Analysis <- "IM direct (5)"
+
+# sjPlot::tab_model(indication_direct_models_mice)
+# sjPlot::plot_models(indication_direct_models_mice, prefix.labels = "varname") + theme_bw()
+```
+
+`fmi`: fraction of information about the coefficients missing due to nonresponse  
+`lambda`: proportion of the variation attributable to the missing data  
+
+```{r}
+mice::densityplot(indication_mice, ~ phase_clean)
+mice::densityplot(indication_mice, ~ sponsor_type)
+mice::densityplot(indication_mice, ~ sample_size)
+```
+
+##### Compare complete case analysis with MICE analysis for the each outcome
+
+###### Control arm
+
+```{r}
+summary(glm(as.formula(paste("control_arm", "~", paste(indication_direct_adjustment, collapse = "+"))), family = binomial(link = "logit"), data = indication_dataset))
+
+fit <- with(indication_mice, glm(as.formula(paste("control_arm", "~", paste(indication_direct_adjustment, collapse = "+"))), family = binomial(link = "logit")))
+pooled_fit <- mice::pool(fit)
+pooled_fit$pooled
+summary(pooled_fit)
+```
+
+###### Randomisation
+
+```{r}
+summary(glm(as.formula(paste("randomisation", "~", paste(indication_direct_adjustment, collapse = "+"))), family = binomial(link = "logit"), data = indication_dataset))
+
+fit <- with(indication_mice, glm(as.formula(paste("randomisation", "~", paste(indication_direct_adjustment, collapse = "+"))), family = binomial(link = "logit")))
+pooled_fit <- mice::pool(fit)
+pooled_fit$pooled
+summary(pooled_fit)
+```
+
+###### Blinding
+
+```{r}
+summary(glm(as.formula(paste("blinding", "~", paste(indication_direct_adjustment, collapse = "+"))), family = binomial(link = "logit"), data = indication_dataset))
+
+fit <- with(indication_mice, glm(as.formula(paste("blinding", "~", paste(indication_direct_adjustment, collapse = "+"))), family = binomial(link = "logit")))
+pooled_fit <- mice::pool(fit)
+pooled_fit$pooled
+summary(pooled_fit)
+```
+
+###### Prospective registration
+
+```{r}
+summary(glm(as.formula(paste("prospective", "~", paste(indication_direct_adjustment, collapse = "+"))), family = binomial(link = "logit"), data = indication_dataset))
+
+fit <- with(indication_mice, glm(as.formula(paste("prospective", "~", paste(indication_direct_adjustment, collapse = "+"))), family = binomial(link = "logit")))
+pooled_fit <- mice::pool(fit)
+pooled_fit$pooled
+summary(pooled_fit)
+```
+
+## Total effect (analyses 6 and 7)
+
+We repeat the main analysis adjusting only for confounding variables.
+
+### Complete case analysis
+
+#### Main dataset
+
+```{r total models main}
+# define adjustment set. This is the same for the main and indication dataset
+main_total_adjustment <- c("covid", "sponsor_type")
+
+indication_total_adjustment <- main_total_adjustment
+
+main_total_models <- lapply(myvars, function (x){
+  glm(as.formula(paste(x, "~", paste(main_total_adjustment, collapse = "+"))),
+      family = binomial(link = "logit"),
+      data = main_dataset)
+})
+
+names(main_total_models) <- paste0(myvars, "_(total)")
+```
+
+```{r total models main results, fig.height = forestplot_height / 4}
+# lapply(main_total_models, summary)
+
+sjPlot::tab_model(main_total_models)
+
+sjPlot::plot_models(main_total_models, prefix.labels = "varname") + theme_bw() + geom_hline(yintercept = 1)
+
+# library(sjmisc)
+```
+
+#### Indication-matched dataset
+
+We repeat the same analyses on the indication-matched dataset.
+
+```{r total models indication}
+# logistic regression for each outcome
+indication_total_models <- lapply(myvars, function (x){
+  glm(as.formula(paste(x, "~", paste(indication_total_adjustment, collapse = "+"))),
+      family = binomial(link = "logit"),
+      data = indication_dataset)
+})
+
+names(indication_total_models) <- paste0(myvars, "_(total_indication)")
+```
+
+```{r total models indication results, fig.height = forestplot_height / 4}
+# lapply(indication_total_models, summary)
+
+# lapply(indication_total_models, function(x) knitr::kable(exp(confint(x)), digits = 2))
+# lapply(indication_total_models, function(x) print(sjPlot::tab_model(x)))
+
+sjPlot::tab_model(indication_total_models)
+
+sjPlot::plot_models(indication_total_models, prefix.labels = "varname") + theme_bw() + geom_hline(yintercept = 1)
+```
+
+### Multiple imputation
+
+Phase, sample size (for 3 trials) and sponsor type have missing values. Here only sponsor type is to be imputed.
+
+#### Main dataset
+
+Use the `mice` command to generate an initial predictor matrix (indicating which column variables are used to predict the row variables) without making any imputations.
+
+```{r}
+set.seed(5)
+
+mice_in <- mice::mice(main_for_mice, maxit = 0, print = FALSE)
+# mice_in <- mice::mice(main_dataset, maxit = 0, print = FALSE)
+predictor_matrix <- mice_in$pred
+predictor_matrix
+
+# warning message: Number of logged events: 1
+```
+
+```{r correlation matrix main total}
+correlation_matrix <- round(cor(sapply(main_for_mice[,c(myvars, main_total_adjustment)], as.numeric), use = "pairwise.complete.obs"), 2)
+# correlation_matrix <- round(cor(na.omit(values)), 2)
+# keep only upper triangle
+correlation_matrix[lower.tri(correlation_matrix)] <- NA
+melted_correlation_matrix <- reshape2::melt(correlation_matrix)
+# lower triangle
+melted_correlation_matrix$Var2 <- factor(melted_correlation_matrix$Var2, levels(melted_correlation_matrix$Var2)[seq(length(levels(melted_correlation_matrix$Var2)), 1, by = -1)], ordered = TRUE)
+
+# labels_plot <- levels(melted_correlation_matrix[,1])
+# labels_plot <- labels[levels(melted_correlation_matrix[,1]),]$short
+labels_plot <- sapply(levels(melted_correlation_matrix[,1]), function(x) gsub("_", "", x))
+
+ggplot(data = melted_correlation_matrix, aes(x = Var1, y = Var2, fill = value)) + geom_tile(color = "white") + xlab("") + ylab("") + scale_fill_gradient2(low = "darkorchid4", high = "green3", mid = "white", midpoint = 0, na.value = "white", limit = c(-1, 1), name = "Correlation") + scale_x_discrete(labels = labels_plot) + scale_y_discrete(labels = labels_plot[length(labels_plot):1]) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),                                     
+  panel.grid.major = element_blank(),
+  panel.border = element_blank(),
+# panel.background = element_blank(),
+  panel.background = element_rect(fill = "white"),
+  axis.ticks = element_blank(),
+  legend.justification = c(1, 0),
+  legend.position = c(0.7, 0.7),
+  legend.direction = "horizontal") + guides(fill = guide_colorbar(barwidth = 7, barheight = 1, title.position = "top", title.hjust = 0.5))
+```
+
+```{r, eval = FALSE}
+# quickpred: quick selection procedure of predictors
+# select predictors according to data relations with a minimum correlation of ρ = 0.25
+mice_in2 <- mice::mice(main_for_mice, pred = mice::quickpred(main_for_mice, mincor = 0.25), print = FALSE)
+mice_in2$pred
+```
+
+Modify the predictor matrix such that only sponsor type is imputed, using all variables. <!-- except `TrialID` and `start_date`.-->
+
+```{r}
+predictor_matrix[,"covid"] <- 1 # no need to set element in row 'covid' to 0 because the entire row will be set to 0 below
+predictor_matrix[which(!(row.names(predictor_matrix) %in% c("sponsor_type"))),] <- 0
+```
+
+Generate 10 imputed datasets using chained equations (using package `mice`).
+
+```{r}
+main_mice <- mice::mice(main_for_mice, m = 10, pred = predictor_matrix) # , print = FALSE
+
+attributes(main_mice)
+```
+
+Original data:
+
+```{r}
+main_mice$data %>% head
+```
+
+Imputed datasets:
+
+```{r}
+main_mice$imp %>% map(head)
+
+# In order to get the third imputed data set, use the complete() function
+
+# c3 <- complete(imp, 3) 
+# md.pattern(c3)
+
+# c.long <- complete(imp, "long") # "broad"
+```
+
+Only impute sponsor type.
+
+```{r}
+method_vector <- main_mice$method
+method_vector[-15] <- ""
+
+# methods(mice)
+```
+
+Generate 10 imputed datasets using the updated `method` vector.
+
+```{r}
+main_mice <- mice::mice(main_for_mice, method = method_vector, m = 10, pred = predictor_matrix) # , print = FALSE
+```
+
+```{r}
+plot(main_mice)
+```
+
+Check that there is no trend with further iterations and that the lines mix.
+
+```{r}
+main_mice_40 <- mice::mice.mids(main_mice, maxit = 40, print = FALSE)
+plot(main_mice_40)
+```
+
+Plot of observed (blue) and imputed (red) phase:
+
+```{r}
+mice::stripplot(main_mice, phase_clean ~ .imp, pch = 20, cex = 2)
+
+# Under MCAR, univariate distributions of the observed and imputed data are expected to be identical. Under MAR, they can be different, both in location and spread, but their multivariate distribution is assumed to be identical.
+```
+
+```{r}
+mice::stripplot(main_mice)
+```
+
+##### Analysis
+
+Logistic regression analysis on the multiply imputed data.
+
+```{r total models main mice}
+main_total_models_mice <- lapply(myvars, function (x){
+  fit <- with(main_mice, glm(as.formula(paste(x, "~", paste(main_total_adjustment, collapse = "+"))),
+                             family = binomial(link = "logit")))
+  pooled_fit <- mice::pool(fit)
+  return(list("fit" = fit, "pooled_fit" = pooled_fit))
+                            })
+
+names(main_total_models_mice) <- myvars
+```
+
+```{r total models main results mice, fig.height = forestplot_height}
+lapply(main_total_models_mice, function(x) summary(x$pooled_fit))
+
+sum_main_total_mice <- lapply(main_total_models_mice, function(x) summary(x$pooled_fit))
+
+# OR and 95% CI (Bonferroni corrected)
+pool_OR_main_total_mice <- lapply(sum_main_total_mice, function(x) {
+  cbind(exp(cbind(x[2,2], (x[2,2]-z*(x[2,3])), 
+           (x[2,2]+z*(x[2,3])))), x[2,6])
+})
+do.call(rbind.data.frame, pool_OR_main_total_mice) 
+
+pool_OR_main_total_mice <- do.call(rbind.data.frame, pool_OR_main_total_mice)
+pool_OR_main_total_mice$Analysis <- "Main total (6)"
+
+# sjPlot::tab_model(main_total_models_mice)
+# sjPlot::plot_models(main_total_models_mice, prefix.labels = "varname") + theme_bw()
+```
+
+`fmi`: fraction of information about the coefficients missing due to nonresponse  
+`lambda`: proportion of the variation attributable to the missing data  
+
+```{r}
+mice::densityplot(main_mice, ~ sponsor_type)
+```
+
+##### Compare complete case analysis with MICE analysis for the each outcome
+
+###### Control arm
+
+```{r}
+summary(glm(as.formula(paste("control_arm", "~", paste(main_total_adjustment, collapse = "+"))), family = binomial(link = "logit"), data = main_dataset))
+
+fit <- with(main_mice, glm(as.formula(paste("control_arm", "~", paste(main_total_adjustment, collapse = "+"))), family = binomial(link = "logit")))
+pooled_fit <- mice::pool(fit)
+pooled_fit$pooled
+summary(pooled_fit)
+```
+
+###### Randomisation
+
+```{r}
+summary(glm(as.formula(paste("randomisation", "~", paste(main_total_adjustment, collapse = "+"))), family = binomial(link = "logit"), data = main_dataset))
+
+fit <- with(main_mice, glm(as.formula(paste("randomisation", "~", paste(main_total_adjustment, collapse = "+"))), family = binomial(link = "logit")))
+pooled_fit <- mice::pool(fit)
+pooled_fit$pooled
+summary(pooled_fit)
+```
+
+###### Blinding
+
+```{r}
+summary(glm(as.formula(paste("blinding", "~", paste(main_total_adjustment, collapse = "+"))), family = binomial(link = "logit"), data = main_dataset))
+
+fit <- with(main_mice, glm(as.formula(paste("blinding", "~", paste(main_total_adjustment, collapse = "+"))), family = binomial(link = "logit")))
+pooled_fit <- mice::pool(fit)
+pooled_fit$pooled
+summary(pooled_fit)
+```
+
+###### Prospective registration
+
+```{r}
+summary(glm(as.formula(paste("prospective", "~", paste(main_total_adjustment, collapse = "+"))), family = binomial(link = "logit"), data = main_dataset))
+
+fit <- with(main_mice, glm(as.formula(paste("prospective", "~", paste(main_total_adjustment, collapse = "+"))), family = binomial(link = "logit")))
+pooled_fit <- mice::pool(fit)
+pooled_fit$pooled
+summary(pooled_fit)
+```
+
+#### Indication-matched dataset
+
+Use the `mice` command to generate an initial predictor matrix (indicating which column variables are used to predict the row variables) without making any imputations.
+
+```{r}
+set.seed(5)
+
+mice_in <- mice::mice(indication_for_mice, maxit = 0, print = FALSE)
+# mice_in <- mice::mice(indication_dataset, maxit = 0, print = FALSE)
+predictor_matrix <- mice_in$pred
+predictor_matrix
+
+# warning message: Number of logged events: 1
+```
+
+```{r correlation matrix indication total}
+correlation_matrix <- round(cor(sapply(indication_for_mice[,c(myvars, indication_total_adjustment)], as.numeric), use = "pairwise.complete.obs"), 2)
+# correlation_matrix <- round(cor(na.omit(values)), 2)
+# keep only upper triangle
+correlation_matrix[lower.tri(correlation_matrix)] <- NA
+melted_correlation_matrix <- reshape2::melt(correlation_matrix)
+# lower triangle
+melted_correlation_matrix$Var2 <- factor(melted_correlation_matrix$Var2, levels(melted_correlation_matrix$Var2)[seq(length(levels(melted_correlation_matrix$Var2)), 1, by = -1)], ordered = TRUE)
+
+# labels_plot <- levels(melted_correlation_matrix[,1])
+# labels_plot <- labels[levels(melted_correlation_matrix[,1]),]$short
+labels_plot <- sapply(levels(melted_correlation_matrix[,1]), function(x) gsub("_", "", x))
+
+ggplot(data = melted_correlation_matrix, aes(x = Var1, y = Var2, fill = value)) + geom_tile(color = "white") + xlab("") + ylab("") + scale_fill_gradient2(low = "darkorchid4", high = "green3", mid = "white", midpoint = 0, na.value = "white", limit = c(-1, 1), name = "Correlation") + scale_x_discrete(labels = labels_plot) + scale_y_discrete(labels = labels_plot[length(labels_plot):1]) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),                                     
+  panel.grid.major = element_blank(),
+  panel.border = element_blank(),
+# panel.background = element_blank(),
+  panel.background = element_rect(fill = "white"),
+  axis.ticks = element_blank(),
+  legend.justification = c(1, 0),
+  legend.position = c(0.7, 0.7),
+  legend.direction = "horizontal") + guides(fill = guide_colorbar(barwidth = 7, barheight = 1, title.position = "top", title.hjust = 0.5))
+```
+
+```{r, eval = FALSE}
+# quickpred: quick selection procedure of predictors
+# select predictors according to data relations with a minimum correlation of ρ = 0.25
+mice_in2 <- mice::mice(indication_for_mice, pred = mice::quickpred(indication_for_mice, mincor = 0.25), print = FALSE)
+mice_in2$pred
+```
+
+Modify the predictor matrix such that only sponsor type is imputed, using all variables. <!-- except `TrialID` and `start_date`.-->
+
+```{r}
+predictor_matrix[,"covid"] <- 1 # no need to set element in row 'covid' to 0 because the entire row will be set to 0 below
+predictor_matrix[which(!(row.names(predictor_matrix) %in% c("sponsor_type"))),] <- 0
+```
+
+Generate 10 imputed datasets using chained equations (using package `mice`).
+
+```{r}
+indication_mice <- mice::mice(indication_for_mice, m = 10, pred = predictor_matrix) # , print = FALSE
+
+attributes(indication_mice)
+```
+
+Original data:
+
+```{r}
+indication_mice$data %>% head
+```
+
+Imputed datasets:
+
+```{r}
+indication_mice$imp %>% map(head)
+
+# In order to get the third imputed data set, use the complete() function
+
+# c3 <- complete(imp, 3) 
+# md.pattern(c3)
+
+# c.long <- complete(imp, "long") # "broad"
+```
+
+Only impute sponsor type.
+
+```{r}
+method_vector <- indication_mice$method
+method_vector[-15] <- ""
+
+# methods(mice)
+```
+
+Generate 10 imputed datasets using the updated `method` vector.
+
+```{r}
+indication_mice <- mice::mice(indication_for_mice, method = method_vector, m = 10, pred = predictor_matrix) # , print = FALSE
+```
+
+```{r}
+plot(indication_mice)
+```
+
+Check that there is no trend with further iterations and that the lines mix.
+
+```{r}
+indication_mice_40 <- mice::mice.mids(indication_mice, maxit = 40, print = FALSE)
+plot(indication_mice_40)
+```
+
+Plot of observed (blue) and imputed (red) phase:
+
+```{r}
+mice::stripplot(indication_mice, phase_clean ~ .imp, pch = 20, cex = 2)
+
+# Under MCAR, univariate distributions of the observed and imputed data are expected to be identical. Under MAR, they can be different, both in location and spread, but their multivariate distribution is assumed to be identical.
+```
+
+```{r}
+mice::stripplot(indication_mice)
+```
+
+##### Analysis
+
+Logistic regression analysis on the multiply imputed data.
+
+```{r total models indication mice}
+indication_total_models_mice <- lapply(myvars, function (x){
+  fit <- with(indication_mice, glm(as.formula(paste(x, "~", paste(indication_total_adjustment, collapse = "+"))),
+                             family = binomial(link = "logit")))
+  pooled_fit <- mice::pool(fit)
+  return(list("fit" = fit, "pooled_fit" = pooled_fit))
+                            })
+
+names(indication_total_models_mice) <- myvars
+```
+
+```{r total models indication results mice, fig.height = forestplot_height}
+lapply(indication_total_models_mice, function(x) summary(x$pooled_fit))
+
+sum_indication_total_mice <- lapply(indication_total_models_mice, function(x) summary(x$pooled_fit))
+
+# OR and 95% CI (Bonferroni corrected)
+pool_OR_indication_total_mice <- lapply(sum_indication_total_mice, function(x) {
+  cbind(exp(cbind(x[2,2], (x[2,2]-z*(x[2,3])), 
+           (x[2,2]+z*(x[2,3])))), x[2,6])
+})
+
+pool_OR_indication_total_mice <- do.call(rbind.data.frame, pool_OR_indication_total_mice)
+pool_OR_indication_total_mice$Analysis <- "IM total (7)"
+# sjPlot::tab_model(indication_total_models_mice)
+# sjPlot::plot_models(indication_total_models_mice, prefix.labels = "varname") + theme_bw()
+```
+
+`fmi`: fraction of information about the coefficients missing due to nonresponse  
+`lambda`: proportion of the variation attributable to the missing data  
+
+```{r}
+mice::densityplot(indication_mice, ~ sponsor_type)
+```
+
+##### Compare complete case analysis with MICE analysis for the each outcome
+
+###### Control arm
+
+```{r}
+summary(glm(as.formula(paste("control_arm", "~", paste(indication_total_adjustment, collapse = "+"))), family = binomial(link = "logit"), data = indication_dataset))
+
+fit <- with(indication_mice, glm(as.formula(paste("control_arm", "~", paste(indication_total_adjustment, collapse = "+"))), family = binomial(link = "logit")))
+pooled_fit <- mice::pool(fit)
+pooled_fit$pooled
+summary(pooled_fit)
+```
+
+###### Randomisation
+
+```{r}
+summary(glm(as.formula(paste("randomisation", "~", paste(indication_total_adjustment, collapse = "+"))), family = binomial(link = "logit"), data = indication_dataset))
+
+fit <- with(indication_mice, glm(as.formula(paste("randomisation", "~", paste(indication_total_adjustment, collapse = "+"))), family = binomial(link = "logit")))
+pooled_fit <- mice::pool(fit)
+pooled_fit$pooled
+summary(pooled_fit)
+```
+
+###### Blinding
+
+```{r}
+summary(glm(as.formula(paste("blinding", "~", paste(indication_total_adjustment, collapse = "+"))), family = binomial(link = "logit"), data = indication_dataset))
+
+fit <- with(indication_mice, glm(as.formula(paste("blinding", "~", paste(indication_total_adjustment, collapse = "+"))), family = binomial(link = "logit")))
+pooled_fit <- mice::pool(fit)
+pooled_fit$pooled
+summary(pooled_fit)
+```
+
+###### Prospective registration
+
+```{r}
+summary(glm(as.formula(paste("prospective", "~", paste(indication_total_adjustment, collapse = "+"))), family = binomial(link = "logit"), data = indication_dataset))
+
+fit <- with(indication_mice, glm(as.formula(paste("prospective", "~", paste(indication_total_adjustment, collapse = "+"))), family = binomial(link = "logit")))
+pooled_fit <- mice::pool(fit)
+pooled_fit$pooled
+summary(pooled_fit)
+```
+
+## E-value (analysis 8)
+
+E-values are calculated below.
+
+```{r evalues}
+#control arm main direct
+control_direct_e <- EValue::evalues.OR(est = 2.18,
+                                       lo = 1.48,
+                                       hi = 3.21,
+                                       rare = 0, 
+          # 1 if the outcome <15% at end of follow up
+                                       true = 1) 
+        # odds ratio for which we want to calculate e-value (i.e. H0)
+
+# randomisation main direct
+randomisation_direct_e <- EValue::evalues.OR(est = 1.9,
+                                             lo = 1.34,
+                                             hi = 2.69,
+                                             rare = 0, 
+                                             true = 1) 
+
+# control main total
+control_total_e <- EValue::evalues.OR(est = 2.2,
+                                      lo = 1.57,
+                                      hi = 3.08,
+                                      rare = 0, 
+                                      true = 1) 
+
+# randomisation main total
+randomisation_total_e <- EValue::evalues.OR(est = 1.93,
+                                            lo = 1.42,
+                                            hi = 2.6,
+                                            rare = 0, 
+                                            true = 1) 
+bind_rows(control_direct_e[2,],
+          randomisation_direct_e[2,],
+          control_total_e[2,],
+          randomisation_total_e[2,]) %>% 
+  rename(Point = point, 
+         Lower = lower) %>% 
+  mutate(Analysis = c("Control arm direct effect",
+                      "Randomisation direct effect",
+                      "Control arm total effect",
+                      "Randomisation total effect")) %>% 
+  select(Analysis, everything(), -upper)
+
+
+
+```
+
+## Geographic regions as confounders (analysis 9)
+
+Analyses 6 and 7 are repeated with geographical regions included as coviariates.
+
+```{r total models main sens mice}
+#  analysis 6 repeated
+locations <- main_dataset %>%
+  select(region_Africa:region_Oceania) %>%
+  names()
+region_sens_adjustment <- c(main_total_adjustment, locations)
+
+main_sens_models_mice <- lapply(myvars, function (x){
+  fit <- with(main_mice, glm(as.formula(paste(x, "~", paste(region_sens_adjustment, collapse = "+"))),
+                             family = binomial(link = "logit")))
+  pooled_fit <- mice::pool(fit)
+  return(list("fit" = fit, "pooled_fit" = pooled_fit))
+                            })
+
+names(main_sens_models_mice) <- myvars
+
+lapply(main_sens_models_mice, function(x) summary(x$pooled_fit))
+
+sum_main_sens_mice <- lapply(main_sens_models_mice, function(x) summary(x$pooled_fit))
+
+# OR and 95% CI (Bonferroni corrected)
+pool_OR_main_sens_mice <- lapply(sum_main_sens_mice, function(x) {
+  cbind(exp(cbind(x[2,2], (x[2,2]-z*(x[2,3])), 
+           (x[2,2]+z*(x[2,3])))), x[2,6])
+})
+do.call(rbind.data.frame, pool_OR_main_sens_mice) 
+
+pool_OR_main_sens_mice <- do.call(rbind.data.frame, pool_OR_main_sens_mice)
+pool_OR_main_sens_mice$Analysis <- "Main total sensitivity (9)"
+
+```
+
+```{r total models indication sens mice}
+# analysis 7 repeated 
+indication_sens_models_mice <- lapply(myvars, function (x){
+  fit <- with(indication_mice, glm(as.formula(paste(x, "~", paste(region_sens_adjustment, collapse = "+"))),
+                             family = binomial(link = "logit")))
+  pooled_fit <- mice::pool(fit)
+  return(list("fit" = fit, "pooled_fit" = pooled_fit))
+                            })
+
+names(indication_sens_models_mice) <- myvars
+
+lapply(indication_sens_models_mice, function(x) summary(x$pooled_fit))
+
+sum_indication_sens_mice <- lapply(indication_sens_models_mice, function(x) summary(x$pooled_fit))
+
+# OR and 95% CI (Bonferroni corrected)
+pool_OR_indication_sens_mice <- lapply(sum_indication_sens_mice, function(x) {
+  cbind(exp(cbind(x[2,2], (x[2,2]-z*(x[2,3])), 
+           (x[2,2]+z*(x[2,3])))), x[2,6])
+})
+
+pool_OR_indication_sens_mice <- do.call(rbind.data.frame, pool_OR_indication_sens_mice)
+pool_OR_indication_sens_mice$Analysis <- "IM total sensitivity (9)"
+
+```
+
+
+## Overall results
+```{r}
+
+colnames(pool_OR_main_direct_mice) <- colnames(pool_OR_indication_direct_mice)
+
+result <- bind_rows(pool_OR_main_direct_mice,
+                    pool_OR_indication_direct_mice,
+                    pool_OR_main_total_mice,
+                    pool_OR_indication_total_mice,
+                    pool_OR_main_sens_mice,
+                    pool_OR_indication_sens_mice)
+
+colnames(result) <- c("Estimate", "Lower.CI", "Upper.CI", "P-Value", "Analysis")
+result$Outcome <- rep(c("Control arm", "Randomisation", "Blinding" , "Prospective"), 6)
+
+result <- result %>% 
+  select(Analysis, Outcome, everything())
+
+rownames(result) <- NULL
+result1 <- result
+result1[3:6] <-lapply(result[3:6], signif, digits=3)
+
+result1$x <- paste0(result1$Estimate, " [", 
+       result1$Lower.CI, "-", result1$Upper.CI, "]")
+
+result1
+
+x <- result %>% 
+  transform(
+    Analysis = factor(
+      Analysis, levels = c("Main direct (4)", 
+                           "IM direct (5)",
+                           "Main total (6)",
+                           "IM total (7)",
+                           "Main total sensitivity (9)",
+                           "IM total sensitivity (9)")),
+    Outcome = factor(
+      Outcome, levels = c("Prospective",
+                          "Blinding",
+                          "Randomisation",
+                          "Control arm")
+    ))
+  
+p <- ggplot(x, aes(Outcome, Estimate)) + 
+  geom_point() +
+  geom_errorbar(aes(ymin = Lower.CI, ymax = Upper.CI)) +
+  geom_hline(yintercept=1, linetype="dashed", color = "red") +
+  labs(y = "Odds ratio")
+
+p <- p + coord_flip()
+p + facet_wrap(~Analysis, ncol = 1) +
+  theme_light()
+```
+
+## Analysis 10
+
+Difficult to do with Mice
+
+<!-- # ```{r} -->
+<!-- # d2 <- d_import %>%  -->
+<!-- #   select(TrialID, study_arm:analyst_blind) %>% -->
+<!-- #   mutate_if(is.character, as.factor) -->
+<!-- #  -->
+<!-- # # convergence issues with source registry, so group infrequent categories -->
+<!-- # d2 <- d2 %>%  -->
+<!-- #   mutate(source_registry = fct_lump_n(d2$source_registry, n = 6)) -->
+<!-- #  -->
+<!-- # summary(d2) -->
+<!-- #  -->
+<!-- # ``` -->
+
+
+# Exploratory analysis
+The code used to define the adjustment sets is given in a separate script.
+
+•	Control arm: sample size, sponsor type, regions, phase, intervention type, and primary purpose. 
+•	Randomisation: sample size, sponsor type, region, control arm, multicentre, vaccine (i.e. a particular intervention type) and primary purpose 
+•	Blinding: sample size, sponsor type, randomisation, region, control arm, phase, intervention type, primary purpose 
+•	Prospective registration: sample size, sponsor type, region, phase, conventional (i.e. a particular intervention type)
+
+```{r}
+control_adjustment <- c("covid",
+                        "sample_size", "sponsor_type", 
+                        "region_Africa", "region_N_America",
+                        "region_L_America", "region_N_America",
+                        "region_Oceania",
+                        "phase_clean", 
+                        "vaccine", "conventional", "traditional",
+                        "primary_purpose")
+
+randomisation_adjustment <- c("covid",
+                              "sample_size", "sponsor_type", 
+                        "region_Africa", "region_N_America",
+                        "region_L_America", "region_N_America",
+                        "region_Oceania",
+                        #"control_arm", leads to issues with convergence
+                        "multicentre", 
+                        "vaccine", "primary_purpose")
+
+blinding_adjustment <- c("covid",
+                         "sample_size", "sponsor_type",
+                         "randomisation",
+                         "region_Africa", "region_N_America",
+                        "region_L_America", "region_N_America",
+                        "region_Oceania", 
+                       # "control_arm", leads to issues with convergence
+                        "phase_clean",
+                        "vaccine", "conventional", "traditional",
+                        "primary_purpose")
+
+prospective_adjustment <- c("covid",
+                            "sample_size", "sponsor_type", 
+                            "region_Africa", "region_N_America",
+                            "region_L_America", "region_N_America",
+                            "region_Oceania",
+                            "phase_clean", 
+                            "conventional")
+```
+
+Complete cases are used for the exploratory analysis.
+```{r}
+d1 <- d %>% 
+  select(study_arm:traditional) %>% 
+  filter(study_arm == "covid" |
+           study_arm == "main")
+d1 <- d1[complete.cases(d1),]
+
+d1$covid <- ifelse(d1$study_arm == "covid", "Yes", "No")
+
+```
+
+```{r}
+control_exp <- glm(as.formula(
+  paste0("control_arm", "~",
+         paste(control_adjustment, collapse = "+"))),
+  family = binomial(link = "logit"),
+  data = d1)
+
+sjPlot::plot_model(control_exp, ci.lvl = 1-0.0125)
+sjPlot::tab_model(control_exp)
+
+randomisation_exp <- glm(as.formula(
+  paste0("randomisation", "~",paste(randomisation_adjustment, collapse = "+"))),
+  family = binomial(link = "logit"),
+  data = d1)
+
+sjPlot::plot_model(randomisation_exp, ci.lvl = 1-0.0125)
+sjPlot::tab_model(randomisation_exp)
+
+blinding_exp <- glm(as.formula(
+  paste0("blinding", "~",paste(blinding_adjustment, collapse = "+"))),
+  family = binomial(link = "logit"),
+  data = d1)
+
+sjPlot::plot_model(blinding_exp, ci.lvl = 1-0.0125)
+sjPlot::tab_model(blinding_exp)
+
+prospective_exp <- glm(as.formula(
+  paste0("prospective", "~",paste(prospective_adjustment, collapse = "+"))),
+  family = binomial(link = "logit"),
+  data = d1)
+
+sjPlot::plot_model(prospective_exp, ci.lvl = 1-0.0125)
+sjPlot::tab_model(prospective_exp)
+
+```
+
+
+
+```{r, echo = FALSE, cache = FALSE}
+knitr::knit_exit()
+```
+
+# END
