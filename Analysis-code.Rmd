@@ -353,7 +353,6 @@ set.seed(5)
 mice_in <- mice::mice(main_for_mice, maxit = 0, print = FALSE)
 # mice_in <- mice::mice(main_dataset, maxit = 0, print = FALSE)
 predictor_matrix <- mice_in$pred
-predictor_matrix
 
 # warning message: Number of logged events: 1
 ```
@@ -575,7 +574,6 @@ set.seed(5)
 mice_in <- mice::mice(indication_for_mice, maxit = 0, print = FALSE)
 # mice_in <- mice::mice(indication_dataset, maxit = 0, print = FALSE)
 predictor_matrix <- mice_in$pred
-predictor_matrix
 
 # warning message: Number of logged events: 1
 ```
@@ -844,7 +842,6 @@ set.seed(5)
 mice_in <- mice::mice(main_for_mice, maxit = 0, print = FALSE)
 # mice_in <- mice::mice(main_dataset, maxit = 0, print = FALSE)
 predictor_matrix <- mice_in$pred
-predictor_matrix
 
 # warning message: Number of logged events: 1
 ```
@@ -1049,7 +1046,6 @@ set.seed(5)
 mice_in <- mice::mice(indication_for_mice, maxit = 0, print = FALSE)
 # mice_in <- mice::mice(indication_dataset, maxit = 0, print = FALSE)
 predictor_matrix <- mice_in$pred
-predictor_matrix
 
 # warning message: Number of logged events: 1
 ```
