@@ -50,11 +50,13 @@ d <- d_import %>%
 d <- d %>% 
   mutate(source_registry = fct_lump_n(d$source_registry, n = 6))
 
-# d <- d_import %>% 
-#   select(study_arm:analyst_blind) %>%
-#   mutate_if(is.character, as.factor)
+# for use in analysis 10
+main_dataset_2 <- d[which(d$study_arm %in% c("covid", "main")),]
+main_dataset_2$covid <- (main_dataset_2$study_arm == "covid")
 
-# d$TrialID <- d_import$TrialID
+indication_dataset_2 <- d[which(d$study_arm %in% c("covid", "im")),]
+indication_dataset_2$covid <- (indication_dataset_2$study_arm == "covid")
+
 
 d$randomisation[d$randomisation == "Not applicable"] <- "No"
 d$randomisation[is.na(d$randomisation)]<- "No"
@@ -219,8 +221,10 @@ Generate main and indication-matched datasets:
 main_dataset <- d[which(d$study_arm %in% c("covid", "main")),]
 main_dataset$covid <- (main_dataset$study_arm == "covid")
 
+
 indication_dataset <- d[which(d$study_arm %in% c("covid", "im")),]
 indication_dataset$covid <- (indication_dataset$study_arm == "covid")
+
 ```
 
 ## Tables of each outcome by other variables
@@ -395,7 +399,7 @@ predictor_matrix[which(!(row.names(predictor_matrix) %in% c("phase_clean", "samp
 Generate 10 imputed datasets using chained equations (using package `mice`).
 
 ```{r}
-main_mice <- mice::mice(main_for_mice, m = 10, pred = predictor_matrix) # , print = FALSE
+main_mice <- mice::mice(main_for_mice, m = 10, pred = predictor_matrix, print = FALSE)
 
 attributes(main_mice)
 ```
@@ -653,7 +657,7 @@ method_vector[19:length(method_vector)] <- ""
 Generate 10 imputed datasets using the updated `method` vector.
 
 ```{r}
-indication_mice <- mice::mice(indication_for_mice, method = method_vector, m = 10, pred = predictor_matrix) # , print = FALSE
+indication_mice <- mice::mice(indication_for_mice, method = method_vector, m = 10, pred = predictor_matrix, print = FALSE)
 ```
 
 ```{r}
@@ -886,7 +890,7 @@ predictor_matrix[which(!(row.names(predictor_matrix) %in% c("sponsor_type"))),] 
 Generate 10 imputed datasets using chained equations (using package `mice`).
 
 ```{r}
-main_mice <- mice::mice(main_for_mice, m = 10, pred = predictor_matrix) # , print = FALSE
+main_mice <- mice::mice(main_for_mice, m = 10, pred = predictor_matrix , print = FALSE)
 
 attributes(main_mice)
 ```
@@ -922,7 +926,7 @@ method_vector[-15] <- ""
 Generate 10 imputed datasets using the updated `method` vector.
 
 ```{r}
-main_mice <- mice::mice(main_for_mice, method = method_vector, m = 10, pred = predictor_matrix) # , print = FALSE
+main_mice <- mice::mice(main_for_mice, method = method_vector, m = 10, pred = predictor_matrix, print = FALSE)
 ```
 
 ```{r}
@@ -1091,7 +1095,7 @@ predictor_matrix[which(!(row.names(predictor_matrix) %in% c("sponsor_type"))),] 
 Generate 10 imputed datasets using chained equations (using package `mice`).
 
 ```{r}
-indication_mice <- mice::mice(indication_for_mice, m = 10, pred = predictor_matrix) # , print = FALSE
+indication_mice <- mice::mice(indication_for_mice, m = 10, pred = predictor_matrix, print = FALSE)
 
 attributes(indication_mice)
 ```
@@ -1127,7 +1131,7 @@ method_vector[-15] <- ""
 Generate 10 imputed datasets using the updated `method` vector.
 
 ```{r}
-indication_mice <- mice::mice(indication_for_mice, method = method_vector, m = 10, pred = predictor_matrix) # , print = FALSE
+indication_mice <- mice::mice(indication_for_mice, method = method_vector, m = 10, pred = predictor_matrix, print = FALSE)
 ```
 
 ```{r}
@@ -1350,6 +1354,160 @@ pool_OR_indication_sens_mice$Analysis <- "IM total sensitivity (9)"
 
 ```
 
+## Analysis 10
+
+Analysis without inferring outcomes. 
+
+Create datasets.
+
+```{r datasets}
+  
+main_dataset_2_control <- main_dataset_2[!is.na(main_dataset_2$control_arm), ]
+main_dataset_2_randomisation <- main_dataset_2[
+  !is.na(main_dataset_2$randomisation) & 
+    main_dataset_2$randomisation != "Not applicable", 
+  ]
+main_dataset_2_blinding <- main_dataset_2[!is.na(main_dataset_2$blinding), ]
+
+
+indication_dataset_2_control <- indication_dataset_2[!is.na(indication_dataset_2$control_arm), ]
+indication_dataset_2_randomisation <- indication_dataset_2[
+  !is.na(indication_dataset_2$randomisation) & 
+    indication_dataset_2$randomisation != "Not applicable", 
+  ]
+indication_dataset_2_blinding <- indication_dataset_2[!is.na(indication_dataset_2$blinding), ]
+
+table(indication_dataset_2$control_arm, useNA = "a")
+table(indication_dataset_2$randomisation, useNA = "a")
+table(indication_dataset_2$blinding, useNA = "a")
+
+table(indication_dataset_2_control$control_arm, useNA = "a")
+table(indication_dataset_2_randomisation$randomisation, useNA = "a")
+table(indication_dataset_2_blinding$blinding, useNA = "a")
+
+# nothing to do for prospective
+
+```
+
+Main direct adjustment with only non-inferred outcomes.
+
+```{r analysis ten part 4}
+
+main_direct_models_10 <- list()
+
+main_direct_models_10[[1]] <- glm(
+  as.formula(paste("control_arm", "~", paste(main_direct_adjustment, collapse = "+"))),
+  family = binomial(link = "logit"),
+  data = main_dataset_2_control)
+
+# source registry needs to be grouped further because it created convergence
+# issues
+main_dataset_2_randomisation <- main_dataset_2_randomisation %>% 
+  mutate(source_registry = fct_lump_n(
+    main_dataset_2_randomisation$source_registry, n = 5))
+
+main_direct_models_10[[2]]<- glm(
+  as.formula(paste("randomisation", "~", paste(main_direct_adjustment, collapse = "+"))),
+  family = binomial(link = "logit"),
+  data = main_dataset_2_randomisation)
+
+main_direct_models_10[[3]]<- glm(
+  as.formula(paste("blinding", "~", paste(main_direct_adjustment, collapse = "+"))),
+  family = binomial(link = "logit"),
+  data = main_dataset_2_blinding)
+
+sjPlot::plot_models(main_direct_models_10, prefix.labels = "varname") + theme_bw() + geom_hline(yintercept = 1)
+
+coef_names <- names(coef(main_direct_models_10[[1]]))
+
+sjPlot::plot_models(main_direct_models_10, 
+                    prefix.labels = "varname",
+                    rm.terms = coef_names[3:length(coef_names)])+
+  theme_bw() + geom_hline(yintercept = 1)
+
+```
+
+Indication matched direct adjustment with only non-inferred outcomes.
+
+```{r analysis ten part 5}
+
+indication_direct_models_10 <- list()
+
+indication_direct_models_10[[1]] <- glm(
+  as.formula(paste("control_arm", "~", paste(indication_direct_adjustment, collapse = "+"))),
+  family = binomial(link = "logit"),
+  data = indication_dataset_2_control)
+
+indication_direct_models_10[[2]]<- glm(
+  as.formula(paste("randomisation", "~", paste(indication_direct_adjustment, collapse = "+"))),
+  family = binomial(link = "logit"),
+  data = indication_dataset_2_randomisation)
+
+indication_direct_models_10[[3]]<- glm(
+  as.formula(paste("blinding", "~", paste(indication_direct_adjustment, collapse = "+"))),
+  family = binomial(link = "logit"),
+  data = indication_dataset_2_blinding)
+
+sjPlot::plot_models(indication_direct_models_10, prefix.labels = "varname") + theme_bw() + geom_hline(yintercept = 1)
+
+coef_names <- names(coef(indication_direct_models_10[[1]]))
+
+sjPlot::plot_models(indication_direct_models_10, 
+                    prefix.labels = "varname",
+                    rm.terms = coef_names[3:length(coef_names)])+
+  theme_bw() + geom_hline(yintercept = 1)
+
+```
+
+Main total adjustment with only non-inferred outcomes.
+
+```{r analysis ten part 6}
+main_total_models_10 <- list()
+
+main_total_models_10[[1]] <- glm(
+  as.formula(paste("control_arm", "~", paste(main_total_adjustment, collapse = "+"))),
+  family = binomial(link = "logit"),
+  data = main_dataset_2_control)
+
+main_total_models_10[[2]]<- glm(
+  as.formula(paste("randomisation", "~", paste(main_total_adjustment, collapse = "+"))),
+  family = binomial(link = "logit"),
+  data = main_dataset_2_randomisation)
+
+main_total_models_10[[3]]<- glm(
+  as.formula(paste("blinding", "~", paste(main_total_adjustment, collapse = "+"))),
+  family = binomial(link = "logit"),
+  data = main_dataset_2_blinding)
+
+sjPlot::plot_models(main_total_models_10, prefix.labels = "varname") + theme_bw() + geom_hline(yintercept = 1)
+
+```
+
+Indication matched total adjustment with only non-inferred outcomes.
+
+```{r analysis ten part 7}
+indication_total_models_10 <- list()
+
+indication_total_models_10[[1]] <- glm(
+  as.formula(paste("control_arm", "~", paste(indication_total_adjustment, collapse = "+"))),
+  family = binomial(link = "logit"),
+  data = indication_dataset_2_control)
+
+indication_total_models_10[[2]]<- glm(
+  as.formula(paste("randomisation", "~", paste(indication_total_adjustment, collapse = "+"))),
+  family = binomial(link = "logit"),
+  data = indication_dataset_2_randomisation)
+
+indication_total_models_10[[3]]<- glm(
+  as.formula(paste("blinding", "~", paste(indication_total_adjustment, collapse = "+"))),
+  family = binomial(link = "logit"),
+  data = indication_dataset_2_blinding)
+
+sjPlot::plot_models(indication_total_models_10, prefix.labels = "varname") + theme_bw() + geom_hline(yintercept = 1)
+
+
+```
+
 
 ## Overall results
 ```{r}
@@ -1370,13 +1528,13 @@ result <- result %>%
   select(Analysis, Outcome, everything())
 
 rownames(result) <- NULL
-result1 <- result
-result1[3:6] <-lapply(result[3:6], signif, digits=3)
+result_t <- result
+result_t[3:6] <-lapply(result[3:6], signif, digits=3)
 
-result1$x <- paste0(result1$Estimate, " [", 
-       result1$Lower.CI, "-", result1$Upper.CI, "]")
+result_t$x <- paste0(result_t$Estimate, " [", 
+       result_t$Lower.CI, "-", result_t$Upper.CI, "]")
 
-result1
+result_t
 
 x <- result %>% 
   transform(
@@ -1403,24 +1561,73 @@ p <- ggplot(x, aes(Outcome, Estimate)) +
 p <- p + coord_flip()
 p + facet_wrap(~Analysis, ncol = 1) +
   theme_light()
+
 ```
 
-## Analysis 10
+### Analysis 10 summary results
 
-Difficult to do with Mice
+```{r}
+all_models_10 <- c(main_direct_models_10, indication_direct_models_10,
+                   main_total_models_10, indication_total_models_10)
 
-<!-- # ```{r} -->
-<!-- # d2 <- d_import %>%  -->
-<!-- #   select(TrialID, study_arm:analyst_blind) %>% -->
-<!-- #   mutate_if(is.character, as.factor) -->
-<!-- #  -->
-<!-- # # convergence issues with source registry, so group infrequent categories -->
-<!-- # d2 <- d2 %>%  -->
-<!-- #   mutate(source_registry = fct_lump_n(d2$source_registry, n = 6)) -->
-<!-- #  -->
-<!-- # summary(d2) -->
-<!-- #  -->
-<!-- # ``` -->
+names(all_models_10) <- rep(c("control_arm", "randomisation", "blinding"), 4)
+
+sum_10 <- lapply(all_models_10, summary)
+sum_10 <- lapply(sum_10, function (x) x[["coefficients"]])
+
+pool_OR_all_10 <- lapply(sum_10, function(x) {
+  cbind(exp(cbind(x[2,1], (x[2,1]-z*(x[2,2])), 
+           (x[2,1]+z*(x[2,2])))), x[2,4])
+})
+
+result_10 <- do.call(rbind.data.frame, pool_OR_all_10)
+
+colnames(result_10) <- c("Estimate", "Lower.CI", "Upper.CI", "P-Value")
+result_10$Outcome <- rep(c("Control arm", "Randomisation", "Blinding"), 4)
+result_10$Analysis <- c(rep("Main direct (4)", 3),
+                      rep("IM direct (5)", 3),
+                      rep("Main total (6)", 3),
+                      rep("IM total (7)", 3))
+
+result_10 <- result_10 %>% 
+  select(Analysis, Outcome, everything())
+
+rownames(result_10) <- NULL
+result_10_t <- result_10
+result_10_t[3:6] <-lapply(result_10[3:6], signif, digits=3)
+
+result_10_t$x <- paste0(result_10_t$Estimate, " [", 
+       result_10_t$Lower.CI, "-", result_10_t$Upper.CI, "]")
+
+result_10_t
+
+```
+
+```{r}
+x <- result_10 %>% 
+  transform(
+    Analysis = factor(
+      Analysis, levels = c("Main direct (4)", 
+                           "IM direct (5)",
+                           "Main total (6)",
+                           "IM total (7)")),
+    Outcome = factor(
+      Outcome, levels = c("Blinding",
+                          "Randomisation",
+                          "Control arm")
+    ))
+  
+p <- ggplot(x, aes(Outcome, Estimate)) + 
+  geom_point() +
+  geom_errorbar(aes(ymin = Lower.CI, ymax = Upper.CI)) +
+  geom_hline(yintercept=1, linetype="dashed", color = "red") +
+  labs(y = "Odds ratio")
+
+p <- p + coord_flip()
+p + facet_wrap(~Analysis, ncol = 1) +
+  theme_light()
+
+```
 
 
 # Exploratory analysis
