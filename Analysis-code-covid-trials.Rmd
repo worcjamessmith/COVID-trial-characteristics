@@ -1,5 +1,5 @@
 ---
-title: "Supplementary analysis: risk of bias in COVID-19 trial registrations protocol"
+title: "Preregistered code: COVID-19 trial registrations protocol"
 author: "James A. Smith. Power analysis by Christiana Kartsonaki" 
 date: "27/08/2020"
 output: 
