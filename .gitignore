@@ -5,6 +5,8 @@
 *.pdf
 *.html
 Todo.md
+*.md
+*.png
 # raw data is too large to push 
 ICTRPFullExport-672212-23-11-20.zip
 ICTRPFullExport-672212-23-11-20.csv
