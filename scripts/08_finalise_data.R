@@ -30,6 +30,10 @@ d$control_arm[1075] <- "Yes"
 # One unclear primary purpose on review is treatment
 d$primary_purpose[d$TrialID == "ChiCTR1900026362"] <- "Treatment"
 
+# One ongoing trial has 0 planned or recruited patients (checked in registration) 
+# This must be an error, make NA
+d$sample_size[d$TrialID== "EUCTR2018-001582-16-IT"] <- NA
+
 # JPRN-JapicCTI-163397 locations have been recorded as unreported, but review
 # indicates that japan is country of recruitment
 stopifnot(colnames(d)[15]== "region_Africa")
@@ -81,7 +85,6 @@ d$sponsor_type[d$sponsor_type == "non_industry"] <- "Non industry"
 d$sponsor_type[d$sponsor_type == "unknown"] <- "Unreported"
 
 d$multicentre[d$multicentre == "Unknown"] <- "Unreported"
-
 
 # Write data -----
 write_csv(d, output_path)
