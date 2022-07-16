@@ -1,0 +1,706 @@
+---
+title: "covid_trials_james_11012022"
+author: "Hopin Lee"
+date: "11/01/2022"
+output: html_document
+---
+
+```{r set-options, echo=FALSE, cache=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(width = 600)
+```
+
+## Read data and pre-process (from James)
+```{r message=FALSE, warning=FALSE}
+rm(list = ls())
+library(tidyverse) 
+library(dagitty)
+library(lavaan)
+library(sjPlot)
+library(summarytools)
+
+setwd("/Users/hl406/Google Drive/projects/covid_trials_james/")
+ 
+# main dataset
+d_import <- read_csv("final_dataset.csv", guess_max = 3000,
+                     na = c("Unreported", "NA"))
+
+d <- d_import %>% 
+  select(study_arm:analyst_blind) %>% 
+  mutate_if(is.character,as.factor)
+
+d$TrialID <- d_import$TrialID
+
+#d$randomisation[d$randomisation == "Not applicable"] <- "No"
+#d$randomisation[is.na(d$randomisation)]<- "No"
+
+d$blinding[is.na(d$blinding)]<- "No"
+d$multicentre[is.na(d$multicentre)] <- "No"
+# this is a deviation agreed with the editor
+d$control_arm[is.na(d$control_arm)] <- "No"
+
+# this is not in the protocol
+d$phase_clean[is.na(d$phase_clean)] <- "Undefined"
+
+
+d_m <- d 
+
+
+# Create factors variables  
+
+## COVID
+d_m$COVID <- NA_character_
+d_m[d_m$study_arm == "covid",]$COVID <- "Yes"
+d_m[d_m$study_arm == "main",]$COVID <- "No"
+
+## region 
+#d_m$region <- NA_character_
+#d_m[d_m$region_Africa == "Yes",]$region <- "Africa"
+#d_m[d_m$region_N_America == "Yes",]$region <- "North America"
+#d_m[d_m$region_L_America == "Yes",]$region <- "Latin America"
+#d_m[d_m$region_Asia == "Yes",]$region <- "Asia"
+#d_m[d_m$region_Europe == "Yes",]$region <- "Europe"
+#d_m[d_m$region_Oceania == "Yes",]$region <- "Oceania"
+
+
+d_m <- d_m %>% mutate_if(is.character,as.factor)
+
+#sapply(d_m, class)
+
+d_m <- d_m %>% 
+  select(COVID, everything())
+```
+
+## Prepare variables for DAG 
+```{r}
+d_m <- d_m %>% 
+     ## sponsor type 
+    #mutate(sponsor_industry = as_factor(sponsor_type)) %>% 
+    #mutate(sponsor_industry = fct_recode(sponsor_industry, 
+    #                             "industry" = "Industry", 
+    #                             "other" = "Investigator", 
+    #                             "other" = "Non industry")) %>% 
+    #
+    #mutate(sponsor_investigator = as_factor(sponsor_type)) %>% 
+    #mutate(sponsor_investigator = fct_recode(sponsor_investigator, 
+    #                                 "investigator" = "Investigator", 
+    #                                 "other" = "Industry", 
+    #                                 "other" = "Non industry")) %>%
+    #
+    #mutate(sponsor_non_industry = as_factor(sponsor_type)) %>% 
+    #mutate(sponsor_non_industry = fct_recode(sponsor_non_industry, 
+    #                                 "non_industry" = "Non industry", 
+    #                                 "other" = "Industry", 
+    #                                 "other" = "Investigator")) %>%
+    ### primary purpose
+    #mutate(purpose_other = as_factor(primary_purpose)) %>% 
+    #mutate(purpose_other = fct_recode(purpose_other, 
+    #                                 "other" = "Other", 
+    #                                 "non-other" = "Prevention", 
+    #                                 "non-other" = "Treatment")) %>%
+    #
+    #mutate(purpose_prevention = as_factor(primary_purpose)) %>% 
+    #mutate(purpose_prevention = fct_recode(purpose_prevention, 
+    #                                 "prevention" = "Prevention", 
+    #                                 "other" = "Other", 
+    #                                 "other" = "Treatment")) %>%
+    #
+    #mutate(purpose_treatment = as_factor(primary_purpose)) %>% 
+    #mutate(purpose_treatment = fct_recode(purpose_treatment, 
+    #                                      "treatment" = "Treatment", 
+    #                                      "other" = "Other", 
+    #                                      "other" = "Prevention")) %>% 
+    #
+    ## Phase
+    #mutate(phase_1 = as_factor(phase_clean)) %>% 
+    #mutate(phase_1 = fct_recode(phase_1, 
+    #                            "1" = "Phase 1", 
+    #                            "0" = "Phase 2", 
+    #                            "0" = "Phase 3", 
+    #                            "0" = "Phase 4",
+    #                            "0" = "Undefined")) %>% 
+    #
+    #mutate(phase_2 = as_factor(phase_clean)) %>% 
+    #mutate(phase_2 = fct_recode(phase_2, 
+    #                            "0" = "Phase 1", 
+    #                            "1" = "Phase 2", 
+    #                            "0" = "Phase 3", 
+    #                            "0" = "Phase 4",
+    #                            "0" = "Undefined")) %>% 
+    #
+    #mutate(phase_3 = as_factor(phase_clean)) %>% 
+    #mutate(phase_3 = fct_recode(phase_3, 
+    #                            "0" = "Phase 1", 
+    #                            "0" = "Phase 2", 
+    #                            "1" = "Phase 3", 
+    #                            "0" = "Phase 4",
+    #                            "0" = "Undefined")) %>% 
+    #
+    #mutate(phase_4 = as_factor(phase_clean)) %>% 
+    #mutate(phase_4 = fct_recode(phase_4, 
+    #                            "0" = "Phase 1", 
+    #                            "0" = "Phase 2", 
+    #                            "0" = "Phase 3", 
+    #                            "1" = "Phase 4",
+    #                            "0" = "Undefined")) %>% 
+    #
+    #mutate(phase_undefined = as_factor(phase_clean)) %>% 
+    #mutate(phase_undefined = fct_recode(phase_undefined, 
+    #                            "0" = "Phase 1", 
+    #                            "0" = "Phase 2", 
+    #                            "0" = "Phase 3", 
+    #                            "0" = "Phase 4",
+    #                            "1" = "Undefined")) %>% 
+    #
+     # Randomisation 
+     mutate(randomisation = as_factor(randomisation)) %>% 
+     mutate(randomisation = fct_recode(randomisation, 
+                                 "1" = "Yes", 
+                                 "0" = "No", 
+                                 "0" = "Not applicable"))  
+
+
+#d_m %>% count(sponsor_type, sponsor_industry, sponsor_investigator, sponsor_non_industry)
+#d_m %>% count(primary_purpose, purpose_other, purpose_prevention, purpose_treatment)
+
+
+df <- lapply(d_m, function(x) as.integer(x))
+
+df <- as.data.frame(df)
+df <- df %>% mutate(sample_size = as.numeric(sample_size)) 
+
+
+df <- df %>% select(COVID, control_arm,blinding,prospective,phase_clean ,multicentre,conventional,vaccine,traditional,sponsor_type,primary_purpose, randomisation, region_Africa, region_N_America, region_L_America, region_Asia, region_Europe, region_Oceania) 
+
+df <- df %>% rename(A1=COVID,
+                    A2=control_arm,
+                    A3=blinding,
+                    A4=prospective,
+                    A5=phase_clean, 
+                    A6=multicentre,
+                    A7=conventional,
+                    A8=vaccine,
+                    A9=traditional,
+                    A10=sponsor_type,
+                    A11=primary_purpose,
+                    A12=randomisation, 
+                    A13=region_Africa, 
+                    A14=region_N_America, 
+                    A15=region_L_America, 
+                    A16=region_Asia, 
+                    A17=region_Europe, 
+                    A18=region_Oceania) 
+
+view(dfSummary(df))
+
+```
+
+## Specify correlation matrix
+```{r}
+df <- df %>% drop_na()
+
+view(dfSummary(df))
+
+corr <- lavCor(df)
+```
+
+## Variable code 
+A1=COVID,  
+A2=control_arm,  
+A3=blinding,  
+A4=prospective,  
+A5=phase_clean,     
+A6=multicentre,  
+A7=conventional,  
+A8=vaccine,  
+A9=traditional,  
+A10=sponsor_type,  
+A11=primary_purpose,  
+A12=randomisation,   
+A13=region_Africa,   
+A14=region_N_America,   
+A15=region_L_America,   
+A16=region_Asia,   
+A17=region_Europe,   
+A18=region_Oceania  
+
+
+
+## Workflow 
+1. Specify DAG based on theory only 
+2. Test independencies 
+3. Refine DAG from step 1 (remove independencies that have a lower bound of 95% CI > 0.05)
+4. Test independencies 
+5. Refine DAG from step 3 (remove independencies that have a point estimate > 0.05)
+6. Declare final DAG structure 
+
+
+```{r fig.height=10, fig.width=10}
+dag_a <- dagitty('dag {
+A1 -> A12
+A1 -> A13
+A1 -> A14
+A1 -> A15
+A1 -> A16
+A1 -> A17
+A1 -> A18
+A1 -> A2
+A1 -> A3
+A1 -> A4
+A1 -> A5
+A1 -> A6
+A1 -> A7
+A1 -> A8
+A1 -> A9
+A10 -> A1
+A10 -> A11
+A10 -> A12
+A10 -> A13
+A10 -> A14
+A10 -> A15
+A10 -> A16
+A10 -> A17
+A10 -> A18
+A10 -> A2
+A10 -> A3
+A10 -> A4
+A10 -> A5
+A10 -> A6
+A10 -> A7
+A10 -> A8
+A10 -> A9
+A11 -> A5
+A11 -> A7
+A11 -> A8
+A11 -> A9
+A12 -> A3
+A13 -> A12
+A13 -> A2
+A13 -> A3
+A13 -> A4
+A13 -> A6
+A13 -> A7
+A13 -> A8
+A14 -> A12
+A14 -> A2
+A14 -> A3
+A14 -> A4
+A14 -> A6
+A15 -> A12
+A15 -> A2
+A15 -> A3
+A15 -> A4
+A15 -> A6
+A16 -> A12
+A16 -> A2
+A16 -> A3
+A16 -> A4
+A16 -> A6
+A17 -> A12
+A17 -> A2
+A17 -> A3
+A17 -> A4
+A17 -> A6
+A18 -> A12
+A18 -> A2
+A18 -> A3
+A18 -> A4
+A18 -> A6
+A2 -> A12
+A2 -> A3
+A5 -> A14
+A5 -> A15
+A5 -> A16
+A5 -> A17
+A5 -> A18
+A5 -> A2
+A5 -> A3
+A5 -> A4
+A5 -> A6
+A6 -> A12
+A7 -> A2
+A7 -> A3
+A7 -> A5
+A8 -> A2
+A8 -> A3
+A8 -> A5
+A9 -> A2
+A9 -> A3
+A9 -> A5
+}')
+
+plot(dag_a)
+#impliedConditionalIndependencies(dag_a)
+
+a <- localTests(dag_a,
+           sample.cov=corr, 
+           sample.nobs=nrow(df), 
+)
+
+plotLocalTestResults(a)
+a %>% filter(`97.5%` < -0.05)
+a %>% filter(`2.5%` > 0.05)
+```
+Minimal sufficient adjustment sets for estimating the effect of A1 on A2 (control group):  
+Total: A10   
+Direct: A10, A13, A14, A15, A16, A17, A18, A5, A7, A8, A9  
+
+Minimal sufficient adjustment sets for estimating the effect of A on A12 (randomisation):  
+Total: A10   
+Direct: A10, A13, A14, A15, A16, A17, A18, A2, A6  
+
+Minimal sufficient adjustment sets for estimating the effect of A on A3 (blinding):  
+Total: A10   
+Direct: A10, A12, A13, A14, A15, A16, A17, A18, A2, A5, A7, A8, A9  
+
+Minimal sufficient adjustment sets for estimating the effect of A on A4 (prospective reg):  
+Total: A10   
+Direct: A10, A13, A14, A15, A16, A17, A18, A5  
+
+
+### DAG modifications (remove independencies that have a lower bound of 95% CI >0.05)
+Dependencies added to DAG    
+A13 <--> A16  
+A14 <--> A16  
+A14 <-- A9  
+A16 <--> A17  
+A16 <-- A7  
+A17 <-- A9  
+A6 <-- A9  
+A7 <--> A8  
+A7 <--> A9  
+A1 --> A11  
+A11 --> A6  
+A13 <--> A15  
+A13 <--> A15  
+A14 <--> A15  
+A14 <--> A18  
+A14 <-- A7  
+A15 <--> A18  
+A16 <-- A9  
+A17 <--> A18  
+
+
+
+```{r fig.height=10, fig.width=10}
+dag_b <- dagitty('dag {
+A1 -> A11
+A1 -> A12
+A1 -> A13
+A1 -> A14
+A1 -> A15
+A1 -> A16
+A1 -> A17
+A1 -> A18
+A1 -> A2
+A1 -> A3
+A1 -> A4
+A1 -> A5
+A1 -> A6
+A1 -> A7
+A1 -> A8
+A1 -> A9
+A10 -> A1
+A10 -> A11
+A10 -> A12
+A10 -> A13
+A10 -> A14
+A10 -> A15
+A10 -> A16
+A10 -> A17
+A10 -> A18
+A10 -> A2
+A10 -> A3
+A10 -> A4
+A10 -> A5
+A10 -> A6
+A10 -> A7
+A10 -> A8
+A10 -> A9
+A11 -> A5
+A11 -> A6
+A11 -> A7
+A11 -> A8
+A11 -> A9
+A12 -> A3
+A13 -> A12
+A13 -> A2
+A13 -> A3
+A13 -> A4
+A13 -> A6
+A13 -> A7
+A13 -> A8
+A13 <-> A15
+A13 <-> A16
+A14 -> A12
+A14 -> A2
+A14 -> A3
+A14 -> A4
+A14 -> A6
+A14 <-> A15
+A14 <-> A16
+A14 <-> A18
+A15 -> A12
+A15 -> A2
+A15 -> A3
+A15 -> A4
+A15 -> A6
+A15 <-> A18
+A16 -> A12
+A16 -> A2
+A16 -> A3
+A16 -> A4
+A16 -> A6
+A16 <-> A17
+A17 -> A12
+A17 -> A2
+A17 -> A3
+A17 -> A4
+A17 -> A6
+A17 <-> A18
+A18 -> A12
+A18 -> A2
+A18 -> A3
+A18 -> A4
+A18 -> A6
+A2 -> A12
+A2 -> A3
+A5 -> A14
+A5 -> A15
+A5 -> A16
+A5 -> A17
+A5 -> A18
+A5 -> A2
+A5 -> A3
+A5 -> A4
+A5 -> A6
+A6 -> A12
+A7 -> A14
+A7 -> A16
+A7 -> A2
+A7 -> A3
+A7 -> A5
+A7 <-> A8
+A7 <-> A9
+A8 -> A2
+A8 -> A3
+A8 -> A5
+A9 -> A14
+A9 -> A16
+A9 -> A17
+A9 -> A2
+A9 -> A3
+A9 -> A5
+A9 -> A6
+}')
+
+plot(dag_b)
+#impliedConditionalIndependencies(dag_b)
+
+a <- localTests(dag_b,
+                sample.cov=corr, 
+                sample.nobs=nrow(df)
+)
+
+plotLocalTestResults(a)
+a %>% filter(estimate < -0.05)
+a %>% filter(estimate > 0.05)
+```
+
+Minimal sufficient adjustment sets for estimating the effect of A1 on A2 (control group):  
+Total: A10    
+Direct: A10, A13, A14, A15, A16, A17, A18, A5, A7, A8, A9   
+  
+Minimal sufficient adjustment sets for estimating the effect of A on A12 (randomisation):  
+Total: A10    
+Direct: A10, A13, A14, A15, A16, A17, A18, A2, A6   
+
+Minimal sufficient adjustment sets for estimating the effect of A on A3 (blinding):  
+Total: A10   
+Direct: A10, A12, A13, A14, A15, A16, A17, A18, A2, A5, A7, A8, A9    
+
+Minimal sufficient adjustment sets for estimating the effect of A on A4 (prospective reg):   
+Total: A10    
+Direct: A10, A13, A14, A15, A16, A17, A18, A5     
+
+
+### DAG modifications (remove independencies that have a point estimate >0.05)
+Dependencies added to DAG   
+A11 --> A12  
+A11 --> A2  
+A11 -->  A3  
+A12 <-- A8  
+A13 <-- A9    
+A15 <-- A9  
+A4 <-- A7  
+A6 <-- A7  
+A8 <--> A9       
+A11 --> A15  
+A11 --> A16   
+A16 <--> A18   
+A13 --> A18     
+A15 <--> A17      
+A15 <-- A7  
+A4 --> A6  
+A6 --> A8  
+
+
+```{r fig.height=10, fig.width=10}
+dag_c <- dagitty('dag {
+A1 -> A11
+A1 -> A12
+A1 -> A13
+A1 -> A14
+A1 -> A15
+A1 -> A16
+A1 -> A17
+A1 -> A18
+A1 -> A2
+A1 -> A3
+A1 -> A4
+A1 -> A5
+A1 -> A6
+A1 -> A7
+A1 -> A8
+A1 -> A9
+A10 -> A1
+A10 -> A11
+A10 -> A12
+A10 -> A13
+A10 -> A14
+A10 -> A15
+A10 -> A16
+A10 -> A17
+A10 -> A18
+A10 -> A2
+A10 -> A3
+A10 -> A4
+A10 -> A5
+A10 -> A6
+A10 -> A7
+A10 -> A8
+A10 -> A9
+A11 -> A12
+A11 -> A15
+A11 -> A16
+A11 -> A2
+A11 -> A3
+A11 -> A5
+A11 -> A6
+A11 -> A7
+A11 -> A8
+A11 -> A9
+A12 -> A3
+A13 -> A12
+A13 -> A18
+A13 -> A2
+A13 -> A3
+A13 -> A4
+A13 -> A6
+A13 -> A7
+A13 -> A8
+A13 <-> A15
+A13 <-> A16
+A14 -> A12
+A14 -> A2
+A14 -> A3
+A14 -> A4
+A14 -> A6
+A14 <-> A15
+A14 <-> A16
+A14 <-> A18
+A15 -> A12
+A15 -> A2
+A15 -> A3
+A15 -> A4
+A15 -> A6
+A15 <-> A17
+A15 <-> A18
+A16 -> A12
+A16 -> A2
+A16 -> A3
+A16 -> A4
+A16 -> A6
+A16 <-> A17
+A16 <-> A18
+A17 -> A12
+A17 -> A2
+A17 -> A3
+A17 -> A4
+A17 -> A6
+A17 <-> A18
+A18 -> A12
+A18 -> A2
+A18 -> A3
+A18 -> A4
+A18 -> A6
+A2 -> A12
+A2 -> A3
+A4 -> A6
+A5 -> A14
+A5 -> A15
+A5 -> A16
+A5 -> A17
+A5 -> A18
+A5 -> A2
+A5 -> A3
+A5 -> A4
+A5 -> A6
+A6 -> A12
+A7 -> A14
+A7 -> A15
+A7 -> A16
+A7 -> A2
+A7 -> A3
+A7 -> A4
+A7 -> A5
+A7 -> A6
+A7 <-> A8
+A7 <-> A9
+A8 -> A12
+A8 -> A2
+A8 -> A3
+A8 -> A5
+A8 -> A6
+A8 <-> A9
+A9 -> A13
+A9 -> A14
+A9 -> A15
+A9 -> A16
+A9 -> A17
+A9 -> A2
+A9 -> A3
+A9 -> A5
+A9 -> A6
+}')
+
+plot(dag_c)
+#impliedConditionalIndependencies(dag_b)
+
+a <- localTests(dag_c,
+                sample.cov=corr, 
+                sample.nobs=nrow(df)
+)
+
+plotLocalTestResults(a)
+a %>% filter(estimate < -0.05)
+a %>% filter(estimate > 0.05)
+```
+
+Minimal sufficient adjustment sets for estimating the effect of A1 on A2 (control group):   
+Total: A10     
+Direct: A10, A11, A13, A14, A15, A16, A17, A18, A5, A7, A8, A9   
+
+Minimal sufficient adjustment sets for estimating the effect of A on A12 (randomisation):   
+Total: A10    
+Direct: A10, A11, A13, A14, A15, A16, A17, A18, A2, A6, A8    
+
+Minimal sufficient adjustment sets for estimating the effect of A on A3 (blinding):    
+Total: A10    
+Direct: A10, A11, A12, A13, A14, A15, A16, A17, A18, A2, A5, A7, A8, A9    
+
+Minimal sufficient adjustment sets for estimating the effect of A on A4 (prospective reg):    
+Total: A10     
+Direct: A10, A13, A14, A15, A16, A17, A18, A5, A7    
+
+
