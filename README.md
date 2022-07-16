@@ -1,6 +1,10 @@
 # Overview
 This repo is for work done for the registered report: Association between investigating COVID-19 and design characteristics in global clinical trial registrations (the stage 1 in principal acceptance, i.e. protocol and planned analysis code, is [here](https://osf.io/f6d2v/)).
 
+Please reach out to me at james.smith2@ndorms.ox.ac.uk or worcjamessmith@gmail.com with any comments or queries. 
+
+Just want the main analysis code and results? Go to `Analysis-code.Rmd` and `Analysis-code.html`.
+
 # Workflow description 
 Here the script processing order and any manual steps taken are explained.
 
@@ -64,6 +68,11 @@ The lists of eligible trials, including the subsets of 847 trials, are in `data/
 8. `08_finalise_data.R`
 
     * Read in consolidated data and do some final checks/ corrections, then generate `data/final_dataset.csv`
+
+## Analysis
+* `Analysis-code.Rmd` is the main analysis file where all analyses, figures or tables presented in the manuscript are created. Details of all regression models can be found in the output of this script: `Analysis-code.html`. For code details, see the `.Rmd` file, and for a more easily navigable presentation see the `.html` file.
+
+* `exploratory_adjustment_sets.Rmd` contains the code that identified the exploratory adjustment sets.
   
 # Dependency management
 The project uses [`renv`](https://rstudio.github.io/renv/articles/renv.html). Use `renv::restore()` to download the correct package versions and ensure computational reproducibility. 
