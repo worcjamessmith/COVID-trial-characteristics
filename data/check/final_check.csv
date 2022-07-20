@@ -1,0 +1,91 @@
+TrialID,study_arm,start_date,control_arm,randomisation,blinding,prospective,source_registry,phase_clean,region_Africa,region_N_America,region_L_America,region_Asia,region_Europe,region_Oceania,multicentre,primary_purpose,sponsor_type,sample_size,vaccine,conventional,traditional,subject_blind,caregiver_blind,investigator_blind,outcome_blind,analyst_blind,covid,start_year
+NCT04516941,covid,2020-10-01T00:00:00Z,Yes,Yes,No,Yes,CT.gov,Phase 3,No,No,No,No,Yes,No,Yes,Treatment,Non industry,6.040254711277414,No,Yes,No,No,No,No,No,No,TRUE,2020
+EUCTR2020-001808-42-ES,covid,2020-06-17T00:00:00Z,Yes,Yes,Yes,No,EUCTR,Phase 2,No,No,No,No,Yes,No,No,Treatment,Industry,2.8903717578961645,No,Yes,No,NA,NA,NA,NA,NA,TRUE,2020
+NCT04534673,covid,2020-08-05T00:00:00Z,Yes,Yes,No,Yes,CT.gov,Phase 2,No,No,No,Yes,No,No,No,Treatment,Non industry,3.6888794541139363,No,Yes,No,No,No,No,No,No,TRUE,2020
+RBR-58ftdj,covid,2020-08-10T00:00:00Z,Yes,Yes,Yes,No,Other,Undefined,No,No,Yes,No,No,No,No,Treatment,Non industry,3.6888794541139363,No,Yes,No,NA,NA,NA,NA,NA,TRUE,2020
+NCT04541979,covid,2020-06-04T00:00:00Z,Yes,Yes,Yes,No,CT.gov,Phase 2,No,No,No,No,Yes,No,No,Treatment,Non industry,4.605170185988092,No,Yes,No,Yes,No,No,No,No,TRUE,2020
+EUCTR2020-002283-32-IT,covid,2020-06-12T00:00:00Z,Yes,Yes,Yes,No,EUCTR,Phase 2,No,No,No,No,Yes,No,Yes,Treatment,Non industry,4.804021044733257,No,Yes,No,NA,NA,NA,NA,NA,TRUE,2020
+CTRI/2020/04/024806,covid,2020-04-26T00:00:00Z,Yes,Yes,No,Yes,CTRI,Phase 2,No,No,No,Yes,No,No,No,Treatment,Non industry,4.605170185988092,No,Yes,No,No,No,No,No,No,TRUE,2020
+NCT04368728,covid,2020-04-29T00:00:00Z,Yes,Yes,Yes,Yes,CT.gov,Phase 3,Yes,Yes,Yes,Yes,Yes,No,Yes,Prevention,Industry,10.691899457321854,Yes,No,No,Yes,Yes,Yes,No,No,TRUE,2020
+NCT04325061,covid,2020-04-03T00:00:00Z,Yes,Yes,No,Yes,CT.gov,Phase 4,No,No,No,No,Yes,No,Yes,Treatment,Non industry,5.298317366548036,No,Yes,No,No,No,No,No,No,TRUE,2020
+NCT04302519,covid,2020-03-05T00:00:00Z,No,No,No,Yes,CT.gov,Phase 1,No,No,No,Yes,No,No,No,Treatment,Industry,3.1780538303479458,No,Yes,No,No,No,No,No,No,TRUE,2020
+RBR-3k4wxb,covid,2020-05-01T00:00:00Z,Yes,Yes,No,No,Other,Phase 2,No,No,Yes,No,No,No,No,Treatment,Non industry,3.8066624897703196,No,Yes,No,No,No,No,No,No,TRUE,2020
+NCT04382651,covid,2020-06-07T00:00:00Z,Yes,Yes,Yes,Yes,CT.gov,Phase 2,No,Yes,No,No,No,No,Yes,Treatment,Industry,4.787491742782046,No,Yes,No,Yes,No,Yes,No,No,TRUE,2020
+CTRI/2020/10/028253,covid,2020-10-10T00:00:00Z,No,No,No,Yes,CTRI,Phase 2,No,No,No,Yes,No,No,No,Treatment,Investigator,2.995732273553991,No,Yes,No,No,No,No,No,No,TRUE,2020
+NCT04386239,covid,2020-05-01T00:00:00Z,No,No,No,No,CT.gov,Phase 1,No,No,No,No,Yes,No,No,Treatment,Non industry,3.6888794541139363,No,Yes,No,No,No,No,No,No,TRUE,2020
+NCT04350580,covid,2020-04-11T00:00:00Z,Yes,Yes,Yes,Yes,CT.gov,Phase 3,No,No,No,No,Yes,No,Yes,Treatment,Non industry,4.927253685157205,No,Yes,No,Yes,Yes,No,No,No,TRUE,2020
+NCT04554433,covid,2020-12-01T00:00:00Z,Yes,Yes,No,Yes,CT.gov,Phase 3,Yes,No,No,No,No,No,No,Treatment,Non industry,4.382026634673881,No,Yes,No,No,No,No,No,No,TRUE,2020
+CTRI/2020/05/025369,covid,2020-05-30T00:00:00Z,Yes,Yes,No,Yes,CTRI,Phase 3,No,No,No,Yes,No,No,Yes,Treatment,Non industry,5.19295685089021,No,Yes,No,No,No,No,No,No,TRUE,2020
+CTRI/2020/09/027775,covid,2020-09-19T00:00:00Z,Yes,Yes,Yes,Yes,CTRI,Phase 2,No,No,No,Yes,No,No,Yes,Treatment,Industry,4.0943445622221,No,No,Yes,Yes,No,Yes,No,No,TRUE,2020
+NCT04358068,covid,2020-05-01T00:00:00Z,Yes,Yes,Yes,Yes,CT.gov,Phase 2,No,Yes,Yes,No,No,No,Yes,Treatment,Non industry,2.995732273553991,No,Yes,No,Yes,No,Yes,No,No,TRUE,2020
+NCT04455243,covid,2020-08-01T00:00:00Z,Yes,Yes,Yes,Yes,CT.gov,Phase 3,No,No,No,Yes,No,No,No,Treatment,Investigator,7.07326971745971,No,Yes,No,Yes,Yes,Yes,Yes,No,TRUE,2020
+EUCTR2020-001608-40-DE,covid,2020-07-15T00:00:00Z,Yes,Yes,Yes,Yes,EUCTR,Phase 3,No,No,No,Yes,Yes,No,Yes,Treatment,Industry,5.545177444479562,No,Yes,No,NA,NA,NA,NA,NA,TRUE,2020
+CTRI/2020/06/025957,covid,2020-06-29T00:00:00Z,Yes,Yes,No,Yes,CTRI,Phase 3,No,No,No,Yes,No,No,Yes,Treatment,Industry,5.062595033026967,No,Yes,No,No,No,No,No,No,TRUE,2020
+IRCT20160131026298N6,covid,2020-11-05T00:00:00Z,Yes,Yes,No,Yes,IRCT,Phase 3,No,No,No,Yes,No,No,No,Treatment,Non industry,4.382026634673881,No,Yes,Yes,No,No,No,No,No,TRUE,2020
+NCT04352946,covid,2020-04-24T00:00:00Z,Yes,Yes,Yes,Yes,CT.gov,Phase 3,No,Yes,No,No,No,No,No,Prevention,Non industry,5.924255797414532,No,Yes,No,Yes,Yes,Yes,Yes,No,TRUE,2020
+NCT04328467,covid,2020-04-06T00:00:00Z,Yes,Yes,Yes,Yes,CT.gov,Phase 3,No,Yes,No,No,No,No,Yes,Treatment,Non industry,7.313220387090301,No,Yes,No,Yes,Yes,Yes,Yes,No,TRUE,2020
+EUCTR2020-003643-29-GB,covid,2020-11-10T00:00:00Z,Yes,Yes,Yes,Yes,EUCTR,Phase 3,Yes,Yes,No,No,Yes,No,Yes,Prevention,Industry,10.308952660644293,Yes,No,No,NA,NA,NA,NA,NA,TRUE,2020
+ChiCTR2000032135,covid,2020-04-22T00:00:00Z,Yes,Yes,No,Yes,ChiCTR,Phase 4,No,No,No,Yes,No,No,No,Treatment,Non industry,3.912023005428146,No,Yes,No,NA,NA,NA,NA,NA,TRUE,2020
+EUCTR2020-001262-11-ES,covid,2020-04-09T00:00:00Z,Yes,Yes,No,No,EUCTR,Phase 4,No,No,No,No,Yes,No,Yes,Treatment,Non industry,4.787491742782046,No,Yes,No,No,No,No,No,No,TRUE,2020
+NCT04353128,covid,2020-04-20T00:00:00Z,Yes,Yes,Yes,Yes,CT.gov,Phase 3,No,No,No,No,Yes,No,Yes,Prevention,Non industry,6.1092475827643655,No,Yes,No,Yes,Yes,Yes,Yes,No,TRUE,2020
+EUCTR2020-001659-42-ES,covid,2020-04-18T00:00:00Z,Yes,Yes,No,No,EUCTR,Phase 2,No,No,No,No,Yes,No,No,Prevention,Non industry,3.828641396489095,No,Yes,No,No,No,No,No,No,TRUE,2020
+NCT04019834,main,2020-07-06T00:00:00Z,Yes,Yes,Yes,Yes,CT.gov,Phase 1,No,Yes,No,No,No,No,No,Prevention,Non industry,4.700480365792417,No,Yes,No,Yes,Yes,Yes,No,No,FALSE,2020
+JPRN-JapicCTI-194690,main,2008-03-14T00:00:00Z,Yes,No,No,No,JPRN,Phase 1,No,No,No,Yes,No,No,No,Other,Industry,3.258096538021482,No,Yes,No,No,No,No,No,No,FALSE,2008
+NCT04192136,main,2020-09-03T00:00:00Z,Yes,Yes,Yes,Yes,CT.gov,Undefined,No,Yes,No,No,No,No,No,Other,Non industry,4.276666119016055,No,No,Yes,Yes,Yes,Yes,Yes,No,FALSE,2020
+NCT03840902,main,2019-04-16T00:00:00Z,Yes,Yes,Yes,Yes,CT.gov,Phase 2,No,Yes,Yes,Yes,Yes,Yes,Yes,Treatment,Industry,5.857933154483459,No,Yes,No,Yes,No,Yes,Yes,No,FALSE,2019
+NCT03977272,main,2019-03-27T00:00:00Z,Yes,Yes,No,No,CT.gov,Phase 3,No,No,No,Yes,No,No,No,Treatment,Non industry,4.700480365792417,No,Yes,No,No,No,No,No,No,FALSE,2019
+EUCTR2018-004331-71-DE,main,2019-05-08T00:00:00Z,No,No,No,Yes,EUCTR,Phase 2,No,Yes,No,No,Yes,No,Yes,Treatment,Industry,3.6635616461296463,No,Yes,No,No,No,No,No,No,FALSE,2019
+ACTRN12619000736145,main,2019-08-26T00:00:00Z,Yes,Yes,No,Yes,Other,Undefined,No,No,No,No,No,Yes,No,Treatment,Non industry,3.7376696182833684,No,Yes,Yes,NA,NA,NA,NA,NA,FALSE,2019
+KCT0004134,main,2019-08-02T00:00:00Z,Yes,Yes,Yes,Yes,Other,Undefined,No,No,No,Yes,No,No,No,Treatment,Non industry,3.6888794541139363,No,Yes,No,Yes,NA,Yes,NA,NA,FALSE,2019
+NCT04106362,main,2020-01-14T00:00:00Z,Yes,Yes,No,Yes,CT.gov,Phase 2,No,Yes,No,No,No,No,No,Treatment,Non industry,4.248495242049359,No,Yes,No,No,No,No,No,No,FALSE,2020
+JPRN-jRCT1041190019,main,2019-04-18T00:00:00Z,Yes,Yes,No,Yes,JPRN,Phase 2,No,No,No,Yes,No,No,No,Treatment,NA,3.6888794541139363,No,No,Yes,No,No,No,No,No,FALSE,2019
+IRCT20181207041876N1,main,2019-04-09T00:00:00Z,Yes,Yes,Yes,Yes,IRCT,Phase 3,No,No,No,Yes,No,No,No,Treatment,Non industry,3.871201010907891,No,No,Yes,NA,NA,NA,NA,NA,FALSE,2019
+NCT03813394,main,2019-05-01T00:00:00Z,Yes,Yes,No,Yes,CT.gov,Phase 2,No,No,No,Yes,No,No,No,Treatment,Non industry,3.871201010907891,No,Yes,No,No,No,No,No,No,FALSE,2019
+NCT03961308,main,2018-03-12T00:00:00Z,Yes,Yes,No,No,CT.gov,Phase 1,No,Yes,No,No,No,No,Yes,Other,Industry,5.318119993844216,No,Yes,No,No,No,No,No,No,FALSE,2018
+NCT04128540,main,2020-02-01T00:00:00Z,Yes,Yes,Yes,Yes,CT.gov,Phase 4,Yes,No,No,No,No,No,No,Other,Non industry,3.332204510175204,No,Yes,No,Yes,No,No,Yes,No,FALSE,2020
+CTRI/2019/07/020388,main,2019-08-06T00:00:00Z,Yes,Yes,No,Yes,CTRI,Phase 3,No,No,No,Yes,No,No,No,Treatment,Non industry,5.087596335232384,No,Yes,No,No,No,No,No,No,FALSE,2019
+KCT0003991,main,2019-09-02T00:00:00Z,Yes,Yes,No,Yes,Other,Phase 4,No,No,No,Yes,No,No,No,Treatment,Non industry,5.991464547107982,No,Yes,No,No,No,No,No,No,FALSE,2019
+IRCT20090117001556N122,main,2019-10-31T00:00:00Z,Yes,Yes,Yes,Yes,IRCT,Phase 3,No,No,No,Yes,No,No,No,Treatment,Non industry,3.912023005428146,No,Yes,No,NA,NA,NA,NA,NA,FALSE,2019
+EUCTR2016-004198-41-NO,main,2018-06-12T00:00:00Z,Yes,Yes,No,No,EUCTR,Phase 3,No,No,No,No,Yes,No,Yes,Prevention,Non industry,5.521460917862246,No,Yes,No,No,No,No,No,No,FALSE,2018
+CTRI/2019/02/017661,main,NA,Yes,Yes,Yes,Yes,CTRI,Phase 3,No,No,No,Yes,No,No,No,Treatment,Non industry,3.6888794541139363,No,No,Yes,Yes,No,No,Yes,No,FALSE,NA
+ChiCTR1900027380,main,2020-01-01T00:00:00Z,Yes,Yes,Yes,Yes,ChiCTR,Undefined,No,No,No,Yes,No,No,Yes,Treatment,Non industry,4.605170185988092,No,Yes,No,NA,NA,NA,NA,NA,FALSE,2020
+NCT03903549,main,2020-11-01T00:00:00Z,Yes,No,No,Yes,CT.gov,Phase 1,No,Yes,No,No,No,No,No,Other,Industry,3.258096538021482,No,Yes,No,No,No,No,No,No,FALSE,2020
+CTRI/2019/01/016974,main,2019-01-08T00:00:00Z,No,No,No,Yes,CTRI,Phase 4,No,No,No,Yes,No,No,Yes,Treatment,Industry,5.703782474656201,No,Yes,No,No,No,No,No,No,FALSE,2019
+TCTR20190705002,main,2018-01-19T00:00:00Z,Yes,Yes,Yes,No,Other,Undefined,No,No,No,Yes,No,No,No,Treatment,Non industry,4.382026634673881,No,Yes,No,NA,NA,NA,NA,NA,FALSE,2018
+NCT03803540,main,2019-05-01T00:00:00Z,No,No,No,Yes,CT.gov,Phase 1,No,No,No,No,Yes,No,No,Treatment,Non industry,2.70805020110221,No,Yes,No,No,No,No,No,No,FALSE,2019
+KCT0004066,main,2014-12-10T00:00:00Z,No,No,No,No,Other,Phase 2,No,No,No,Yes,No,No,No,Treatment,Non industry,1.0986122886681098,No,Yes,No,No,No,No,No,No,FALSE,2014
+NCT03837938,main,2016-11-09T00:00:00Z,Yes,Yes,No,No,CT.gov,Phase 3,No,No,No,No,Yes,No,Yes,Treatment,Industry,5.214935757608986,No,Yes,No,No,No,No,No,No,FALSE,2016
+IRCT20191006044993N1,main,2019-10-23T00:00:00Z,Yes,Yes,Yes,No,IRCT,Phase 3,No,No,No,Yes,No,No,Yes,Treatment,Non industry,4.382026634673881,No,No,Yes,NA,NA,NA,NA,NA,FALSE,2019
+CTRI/2019/02/017655,main,2019-02-25T00:00:00Z,Yes,Yes,Yes,Yes,CTRI,Phase 4,No,No,No,Yes,No,No,No,Other,Non industry,4.867534450455582,No,Yes,No,Yes,No,Yes,No,No,FALSE,2019
+CTRI/2019/08/020845,main,2019-08-30T00:00:00Z,No,No,No,Yes,CTRI,Phase 2,No,Yes,Yes,Yes,Yes,No,Yes,Treatment,Industry,5.147494476813453,No,Yes,No,No,No,No,No,No,FALSE,2019
+NCT04116775,main,2019-10-30T00:00:00Z,No,No,No,Yes,CT.gov,Phase 2,No,Yes,No,No,No,No,No,Treatment,Investigator,3.4657359027997265,No,Yes,No,No,No,No,No,No,FALSE,2019
+NCT03207165,im,2017-08-30T00:00:00Z,Yes,Yes,Yes,Yes,CT.gov,Phase 4,No,Yes,No,No,No,No,No,Treatment,Non industry,5.2574953720277815,No,Yes,No,Yes,Yes,Yes,Yes,No,FALSE,2017
+EUCTR2013-004154-22-IT,im,2015-12-24T00:00:00Z,Yes,Yes,Yes,No,EUCTR,Phase 3,Yes,No,Yes,Yes,Yes,No,Yes,Treatment,Industry,6.587550014824796,No,Yes,No,NA,NA,NA,NA,NA,FALSE,2015
+EUCTR2018-001159-11-CZ,im,2019-02-08T00:00:00Z,Yes,Yes,No,Yes,EUCTR,Phase 3,No,Yes,Yes,Yes,Yes,Yes,Yes,Treatment,Industry,5.521460917862246,No,Yes,No,No,No,No,No,No,FALSE,2019
+EUCTR2016-002195-27-EE,im,2016-07-08T00:00:00Z,No,No,No,Yes,EUCTR,Phase 4,No,No,No,No,Yes,No,No,Other,Non industry,2.1972245773362196,No,Yes,No,NA,NA,NA,NA,NA,FALSE,2016
+EUCTR2015-003895-65-SE,im,2016-05-16T00:00:00Z,Yes,Yes,Yes,Yes,EUCTR,Phase 3,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Prevention,Industry,8.699514748210191,No,Yes,No,NA,NA,NA,NA,NA,FALSE,2016
+NCT03989531,im,2019-04-04T00:00:00Z,Yes,Yes,Yes,No,CT.gov,Phase 3,No,No,No,No,Yes,No,Yes,Treatment,Investigator,5.0106352940962555,No,Yes,No,Yes,Yes,Yes,Yes,No,FALSE,2019
+EUCTR2016-001054-17-FR,im,2017-01-27T00:00:00Z,Yes,Yes,Yes,No,EUCTR,Phase 3,No,No,No,No,Yes,No,Yes,Prevention,Non industry,6.745236349484363,No,Yes,No,NA,NA,NA,NA,NA,FALSE,2017
+NCT03622450,im,2016-01-02T00:00:00Z,Yes,Yes,Yes,No,CT.gov,Phase 3,Yes,No,No,No,No,No,No,Treatment,Investigator,3.6888794541139363,No,Yes,No,Yes,Yes,No,Yes,No,FALSE,2016
+NCT03172988,im,2017-08-02T00:00:00Z,Yes,Yes,Yes,Yes,CT.gov,Phase 4,No,No,No,Yes,No,No,Yes,Other,Non industry,4.836281906951478,No,Yes,No,Yes,Yes,Yes,Yes,No,FALSE,2017
+ACTRN12617000322336,im,2018-01-04T00:00:00Z,Yes,Yes,Yes,Yes,Other,Phase 3,No,Yes,No,Yes,No,Yes,Yes,Treatment,Non industry,6.966024187106113,No,Yes,No,NA,NA,NA,NA,NA,FALSE,2018
+NCT02878031,im,2016-10-01T00:00:00Z,No,No,No,Yes,CT.gov,Phase 4,Yes,No,No,No,No,No,No,Treatment,Non industry,5.25227342804663,No,Yes,No,No,No,No,No,No,FALSE,2016
+NCT03673345,im,2018-09-24T00:00:00Z,Yes,No,No,Yes,CT.gov,Phase 4,No,Yes,No,No,No,No,No,Prevention,Non industry,5.393627546352362,Yes,No,No,No,No,No,No,No,FALSE,2018
+EUCTR2018-004056-37-GB,im,2019-09-11T00:00:00Z,Yes,Yes,Yes,Yes,EUCTR,Phase 3,Yes,Yes,Yes,Yes,Yes,No,Yes,Treatment,Industry,7.029972911706386,No,Yes,No,NA,NA,NA,NA,NA,FALSE,2019
+ACTRN12617000626369,im,2017-05-22T00:00:00Z,No,No,No,Yes,Other,Undefined,No,No,No,No,Yes,No,No,Other,Non industry,2.995732273553991,No,Yes,No,No,No,No,No,No,FALSE,2017
+ChiCTR-IPQ-16008781,im,NA,Yes,No,No,Yes,ChiCTR,Phase 4,No,No,No,Yes,No,No,No,Treatment,Non industry,5.19295685089021,No,Yes,No,NA,NA,NA,NA,NA,FALSE,NA
+IRCT20090808002306N5,im,2019-11-09T00:00:00Z,Yes,Yes,No,No,IRCT,Phase 3,No,No,No,Yes,No,No,No,Treatment,Non industry,4.382026634673881,No,Yes,No,No,No,No,No,No,FALSE,2019
+EUCTR2016-004547-36-HU,im,2017-03-16T00:00:00Z,Yes,Yes,No,Yes,EUCTR,Phase 2,No,No,No,No,Yes,No,Yes,Treatment,Industry,5.703782474656201,No,Yes,No,No,No,No,No,No,FALSE,2017
+NCT02903836,im,2016-11-18T00:00:00Z,Yes,Yes,Yes,Yes,CT.gov,Phase 2,No,Yes,No,No,No,No,Yes,Treatment,Industry,5.442417710521793,No,Yes,No,Yes,Yes,Yes,Yes,No,FALSE,2016
+EUCTR2015-004782-92-HU,im,2016-07-25T00:00:00Z,Yes,Yes,Yes,Yes,EUCTR,Phase 3,Yes,Yes,Yes,Yes,Yes,No,Yes,Treatment,Industry,6.6039438246004725,No,Yes,No,NA,NA,NA,NA,NA,FALSE,2016
+NCT04115878,im,2020-09-23T00:00:00Z,Yes,Yes,Yes,Yes,CT.gov,Phase 2,No,Yes,No,No,No,No,No,Treatment,Non industry,3.295836866004329,No,Yes,No,Yes,Yes,Yes,Yes,No,FALSE,2020
+EUCTR2017-003037-28-NL,im,2019-10-02T00:00:00Z,Yes,Yes,No,Yes,EUCTR,Phase 4,No,No,No,No,Yes,No,Yes,Treatment,Non industry,4.787491742782046,No,Yes,No,No,No,No,No,No,FALSE,2019
+NCT03191240,im,2017-07-31T00:00:00Z,Yes,Yes,Yes,Yes,CT.gov,Phase 2,No,No,No,Yes,No,No,Yes,Treatment,Non industry,4.700480365792417,No,Yes,No,Yes,Yes,Yes,No,No,FALSE,2017
+NCT03958396,im,2015-09-01T00:00:00Z,Yes,No,No,No,CT.gov,Phase 1,No,Yes,No,No,No,No,No,Treatment,Non industry,3.4011973816621555,No,Yes,No,No,No,No,No,No,FALSE,2015
+IRCT20150825023760N7,im,2018-05-29T00:00:00Z,Yes,Yes,No,No,IRCT,Phase 3,No,No,No,Yes,No,No,No,Treatment,Non industry,4.060443010546419,No,Yes,Yes,No,No,No,No,No,FALSE,2018
+EUCTR2016-002134-74-GB,im,2016-07-27T00:00:00Z,Yes,Yes,Yes,Yes,EUCTR,Phase 2,No,No,No,No,Yes,No,Yes,Prevention,Industry,4.812184355372417,Yes,No,No,NA,NA,NA,NA,NA,FALSE,2016
+IRCT20151220025619N5,im,2019-01-30T00:00:00Z,Yes,Yes,Yes,No,IRCT,Phase 3,No,No,No,Yes,No,No,No,Treatment,Non industry,4.430816798843313,No,Yes,No,NA,NA,NA,NA,NA,FALSE,2019
+NCT02686398,im,2013-10-01T00:00:00Z,Yes,Yes,No,No,CT.gov,Phase 4,No,No,No,Yes,No,No,No,Prevention,Non industry,5.159055299214529,Yes,No,No,No,No,No,No,No,FALSE,2013
+NCT03370289,im,2017-12-14T00:00:00Z,No,No,No,Yes,CT.gov,Phase 4,No,No,No,Yes,No,No,No,Prevention,Industry,4.007333185232471,Yes,No,No,No,No,No,No,No,FALSE,2017
+EUCTR2015-005624-26-PL,im,2016-05-30T00:00:00Z,Yes,Yes,No,Yes,EUCTR,Phase 2,No,Yes,Yes,No,Yes,No,Yes,Treatment,Industry,4.1588830833596715,No,Yes,No,No,No,No,No,No,FALSE,2016
+EUCTR2016-002708-17-FR,im,2016-11-25T00:00:00Z,No,No,No,No,EUCTR,Phase 4,No,No,No,No,Yes,No,No,Other,Non industry,3.1780538303479458,No,Yes,No,No,No,No,No,No,FALSE,2016

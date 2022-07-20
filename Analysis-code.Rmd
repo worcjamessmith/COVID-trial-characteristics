@@ -1767,6 +1767,27 @@ sjPlot::tab_model(prospective_exp)
 
 ```
 
+# Outcome neutral criterion 4
+Used to generate random 30 per arm to check. 
+
+```{r}
+set.seed(5)
+cov_30 <- main_dataset %>% 
+  filter(study_arm == "covid") %>% 
+  sample_n(30)
+
+main_30 <- main_dataset %>% 
+  filter(study_arm == "main") %>% 
+  sample_n(30)
+  
+im_30 <- indication_dataset %>% 
+  filter(study_arm == "im") %>% 
+  sample_n(30)
+
+check_90 <- bind_rows(cov_30, main_30, im_30)
+write_csv(check_90, file = "data/check/final_check.csv")
+
+```
 
 
 ```{r, echo = FALSE, cache = FALSE}

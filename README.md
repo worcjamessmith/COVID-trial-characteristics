@@ -3,7 +3,7 @@ This repo is for work done for the registered report: Association between invest
 
 Please reach out to me at james.smith2@ndorms.ox.ac.uk or worcjamessmith@gmail.com with any comments or queries. 
 
-Just want the main analysis code and results? Go to `Analysis-code.Rmd` and `Analysis-code.html`.
+**Just want the main analysis code and results?** Go to `Analysis-code.Rmd` and `Analysis-code.html`. In `Analysis-code.html` you can find full results and all model coefficients. 
 
 # Workflow description 
 Here the script processing order and any manual steps taken are explained.
